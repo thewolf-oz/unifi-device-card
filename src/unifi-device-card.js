@@ -112,6 +112,19 @@ class UnifiDeviceCard extends HTMLElement {
     await this._hass.callService("button", "press", { entity_id: entityId });
   }
 
+  _subtitle() {
+    if (!this._config?.device_id || !this._deviceContext) {
+      return `Version ${VERSION}`;
+    }
+
+    const firmware = this._deviceContext?.firmware;
+    if (firmware) {
+      return `${this._deviceContext?.layout?.displayModel || this._deviceContext?.model || ""} · Firmware ${firmware}`;
+    }
+
+    return `${this._deviceContext?.layout?.displayModel || this._deviceContext?.model || ""}`;
+  }
+
   _styles() {
     return `
       <style>
@@ -262,11 +275,6 @@ class UnifiDeviceCard extends HTMLElement {
           color: var(--primary-text-color);
         }
 
-        .summary {
-          display: grid;
-          gap: 8px;
-        }
-
         .layout-note {
           color: var(--secondary-text-color);
           font-size: 0.85rem;
@@ -280,7 +288,7 @@ class UnifiDeviceCard extends HTMLElement {
       <ha-card>
         <div class="header">
           <div class="title">${title}</div>
-          <div class="subtitle">Version ${VERSION}</div>
+          <div class="subtitle">${this._subtitle()}</div>
         </div>
         <div class="content muted">Bitte im Karteneditor ein UniFi-Gerät auswählen.</div>
       </ha-card>
@@ -307,7 +315,7 @@ class UnifiDeviceCard extends HTMLElement {
     `;
   }
 
-  _renderPanelAndDetail(title, kindLabel) {
+  _renderPanelAndDetail(title) {
     const ctx = this._deviceContext;
     const discoveredPorts = discoverPorts(ctx?.entities || []);
     const ports = mergePortsWithLayout(ctx?.layout, discoveredPorts);
@@ -392,7 +400,7 @@ class UnifiDeviceCard extends HTMLElement {
       <ha-card>
         <div class="header">
           <div class="title">${title}</div>
-          <div class="subtitle">${ctx?.layout?.displayModel || ctx?.model || kindLabel} · Version ${VERSION}</div>
+          <div class="subtitle">${this._subtitle()}</div>
         </div>
         <div class="frontpanel ${ctx?.layout?.frontStyle || "single-row"}">
           ${layoutRows.join("") || `<div class="content muted">Keine Ports erkannt.</div>`}
@@ -424,14 +432,6 @@ class UnifiDeviceCard extends HTMLElement {
     });
   }
 
-  _renderGateway(title) {
-    this._renderPanelAndDetail(title, "Gateway");
-  }
-
-  _renderSwitch(title) {
-    this._renderPanelAndDetail(title, "Switch");
-  }
-
   _render() {
     const title = this._config?.name || "UniFi Device Card";
 
@@ -445,7 +445,7 @@ class UnifiDeviceCard extends HTMLElement {
         <ha-card>
           <div class="header">
             <div class="title">${title}</div>
-            <div class="subtitle">Version ${VERSION}</div>
+            <div class="subtitle">${this._subtitle()}</div>
           </div>
           <div class="content muted">Lade Gerätedaten…</div>
         </ha-card>
@@ -459,7 +459,7 @@ class UnifiDeviceCard extends HTMLElement {
         <ha-card>
           <div class="header">
             <div class="title">${title}</div>
-            <div class="subtitle">Version ${VERSION}</div>
+            <div class="subtitle">${this._subtitle()}</div>
           </div>
           <div class="content muted">Keine Gerätedaten verfügbar.</div>
         </ha-card>
@@ -468,12 +468,7 @@ class UnifiDeviceCard extends HTMLElement {
       return;
     }
 
-    if (this._deviceContext.type === "switch") {
-      this._renderSwitch(title);
-      return;
-    }
-
-    this._renderGateway(title);
+    this._renderPanelAndDetail(title);
   }
 }
 
