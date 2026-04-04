@@ -76,6 +76,30 @@ function classifyDevice(device, entities) {
 
   if (isAccessPoint) return "access_point";
 
+  // Gateway first, damit UCG/Cloud Gateway nicht als Switch endet
+  const isGateway =
+    model.startsWith("udm") ||
+    model.startsWith("ucg") ||
+    model.startsWith("uxg") ||
+    model.includes("udrult") ||
+    model.includes("ucg-ultra") ||
+    model.includes("gateway") ||
+    name.includes("cloud gateway") ||
+    userName.includes("cloud gateway") ||
+    name.includes("gateway ultra") ||
+    userName.includes("gateway ultra") ||
+    name.includes("ucg") ||
+    userName.includes("ucg") ||
+    name.includes("udm") ||
+    userName.includes("udm") ||
+    name.includes("uxg") ||
+    userName.includes("uxg") ||
+    text.includes("dream machine") ||
+    text.includes("cloud gateway ultra") ||
+    text.includes("gateway ultra");
+
+  if (isGateway) return "gateway";
+
   const hasPortEntities = entities.some((e) => /_port_\d+_/i.test(e.entity_id));
 
   const isSwitchByModel =
@@ -83,11 +107,9 @@ function classifyDevice(device, entities) {
     model.startsWith("us-") ||
     model.includes("usmini") ||
     model.includes("us8") ||
+    model.includes("us8p") ||
     model.includes("usl8") ||
     model.includes("usl16") ||
-    model.includes("us8p") ||
-    model.includes("usw-flex") ||
-    model.includes("usmini") ||
     model.includes("usl8lp") ||
     model.includes("usl16lp") ||
     model.includes("flex");
@@ -99,25 +121,6 @@ function classifyDevice(device, entities) {
     userName.includes("us 8");
 
   if (hasPortEntities || isSwitchByModel || isSwitchByName) return "switch";
-
-  const isGateway =
-    model.startsWith("udm") ||
-    model.startsWith("ucg") ||
-    model.startsWith("uxg") ||
-    model.includes("udrult") ||
-    name.includes("cloud gateway") ||
-    userName.includes("cloud gateway") ||
-    name.includes("gateway ultra") ||
-    userName.includes("gateway ultra") ||
-    name.includes("udm") ||
-    userName.includes("udm") ||
-    name.includes("ucg") ||
-    userName.includes("ucg") ||
-    name.includes("uxg") ||
-    userName.includes("uxg") ||
-    text.includes("dream machine");
-
-  if (isGateway) return "gateway";
 
   return "unknown";
 }
@@ -203,9 +206,11 @@ function deviceBelongsToUnifi(device, unifiEntryIds, entities) {
     model.startsWith("uxg") ||
     model.includes("usmini") ||
     model.includes("us8") ||
+    model.includes("us8p") ||
     model.includes("usl8") ||
     model.includes("usl16") ||
-    model.includes("udrult");
+    model.includes("udrult") ||
+    model.includes("gateway");
 
   const strongNameHint =
     name.includes("usw") ||
@@ -392,6 +397,14 @@ export function discoverPorts(entities) {
     const slot = classifyPortEntity(entity);
     if (slot && !row[slot]) {
       row[slot] = entity.entity_id;
+    }
+  }
+
+  // PoE nur dann als verfügbar behandeln, wenn auch Power Cycle vorhanden ist
+  for (const row of ports.values()) {
+    if (!row.power_cycle_entity) {
+      row.poe_switch_entity = null;
+      row.poe_power_entity = null;
     }
   }
 
