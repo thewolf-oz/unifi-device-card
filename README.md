@@ -1,159 +1,139 @@
 # UniFi Device Card
 
-A Home Assistant Lovelace custom card for UniFi devices.
+A Home Assistant Lovelace custom card for UniFi devices such as switches (USW, US) and gateways (UDM, UCG).
 
-Current scope:
-- UniFi switches with a compact port grid
-- UniFi gateways and consoles such as UCG and UDM with a summary view
-- built-in visual config editor
-- device picker that tries to show only UniFi devices from Home Assistant
+---
 
-This repository is structured to be usable as a **HACS custom repository** right away.
+## ✨ Features
 
-## HACS install
+- Unified UI for UniFi devices
+- Automatic device type detection (Switch / Gateway)
+- Switch port grid with:
+  - Link status (color)
+  - PoE status (icon)
+- Mobile & desktop friendly (no browser_mod required)
+- Built-in UI editor for selecting UniFi devices
+- Designed for reuse across multiple switches
 
-1. Push this repository to GitHub.
-2. In Home Assistant, open **HACS**.
-3. Open the menu in the top right and choose **Custom repositories**.
-4. Add your GitHub repository URL.
-5. Select repository type **Dashboard**.
-6. Install **UniFi Device Card**.
-7. Refresh the browser.
+---
 
-HACS custom repositories need a known repository structure, and dashboard/plugin repositories need the card JavaScript file in `dist/` or the repo root, with a name matching the repository name. HACS can install from the default branch even without releases, and custom repositories are added through HACS using the repository URL and the correct type. citeturn840225search0turn840225search1turn840225search2
+## 📦 Installation (HACS)
 
-After installing through HACS, the resource is usually added automatically. If you need to add it manually, use:
+1. Open **HACS**
+2. Go to **Frontend**
+3. Click the **⋮ (menu)** → **Custom repositories**
+4. Add your repository:
+   - **Repository:** `https://github.com/YOUR_USERNAME/unifi-device-card`
+   - **Category:** `Dashboard`
+5. Click **Add**
+6. Search for **UniFi Device Card**
+7. Install it
+8. Restart Home Assistant (or reload resources)
+
+---
+
+## 🚀 Usage
+
+Add the card to your dashboard:
 
 ```yaml
-url: /hacsfiles/unifi-device-card/unifi-device-card.js
-type: module
+type: custom:unifi-device-card
+device_id: YOUR_DEVICE_ID
 ```
 
-## Manual install
+---
 
-Copy `dist/unifi-device-card.js` to:
+## 🔎 How to find your device_id
 
-```text
-/config/www/unifi-device-card.js
-```
+1. Go to **Settings → Devices & Services**
+2. Open your UniFi device
+3. Click **three dots (⋮)** → **Copy device ID**
 
-Then add a Lovelace resource:
+---
+
+## 🧱 Manual Installation
+
+1. Copy the file:
+
+`dist/unifi-device-card.js`
+
+to:
+
+`/config/www/unifi-device-card.js`
+
+2. Add the resource:
 
 ```yaml
 url: /local/unifi-device-card.js
 type: module
 ```
 
-## Basic usage
+---
 
-```yaml
-type: custom:unifi-device-card
-device_id: YOUR_HOME_ASSISTANT_DEVICE_ID
-```
+## 🖥️ Supported Devices
 
-Example with options:
+- UniFi Switches:
+  - US 8 60W
+  - USW Lite 8
+  - USW Lite 16
+  - USW Flex / Flex Mini
+- UniFi Gateways:
+  - UDM
+  - UDM Pro
+  - UDM SE
+  - UCG (Ultra, etc.)
 
-```yaml
-type: custom:unifi-device-card
-device_id: YOUR_HOME_ASSISTANT_DEVICE_ID
-name: Core Switch
-view: compact
-tap_action: navigate
-navigation_path: /dashboard-switches/core-switch
-show_speed: true
-show_port_details: true
-show_gateway_ports: true
-```
+---
 
-## Repository layout
+## ⚙️ Configuration Options
 
-```text
-.
-├── .github/workflows/
-│   ├── hacs-validate.yml
-│   └── release.yml
-├── dist/
-│   └── unifi-device-card.js
-├── src/
-│   ├── helpers.js
-│   ├── unifi-device-card-editor.js
-│   └── unifi-device-card.js
-├── hacs.json
-├── info.md
-├── LICENSE
-├── package.json
-└── README.md
-```
+| Option | Description |
+|--------|-------------|
+| `device_id` | Home Assistant device ID (required) |
+| `name` | Optional custom title |
+| `view` | `compact` or `detailed` (future) |
+| `navigation_path` | Path for navigation on tap |
 
-## Current behavior
+---
 
-### Switches
-- compact port grid
-- link state styling
-- PoE icon hint when discovered
-- optional navigation on tap
-- optional hold and double-tap actions
-- optional detailed list of discovered port entities
+## 🧪 Development
 
-### Gateways and consoles
-- summary tiles for internet, WAN, CPU, memory, temperature, uptime, clients, throughput
-- optional discovered WAN and LAN entities below
+Source files:
 
-## Config editor
+`/src`
 
-The built-in editor tries to find UniFi devices by checking:
-- device manufacturer and model
-- device name
-- related entity ids and names
+Built file (used by Home Assistant):
 
-It is heuristic-based so it can work across different UniFi models and Home Assistant versions.
+`/dist/unifi-device-card.js`
 
-## Notes about discovery
+After making changes, always rebuild or update the file in `/dist`.
 
-Home Assistant's UniFi entity naming can vary by version and model. The card therefore uses best-effort matching instead of assuming one exact entity pattern.
+---
 
-If your installation uses different entity names, adjust the heuristics in:
+## 🏷️ Releases
 
-- `src/helpers.js`
+Releases are optional for HACS dashboard/plugin repositories.
 
-Then rebuild `dist/unifi-device-card.js` or update it directly.
+- With releases, HACS supports versioned installs and upgrades
+- Without releases, HACS uses the default branch
 
-## Suggested GitHub repo name
+---
 
-Use this exact repository name:
+## 🐛 Troubleshooting
 
-```text
-unifi-device-card
-```
+### Card not loading
 
-That matches the distributed file name `unifi-device-card.js`, which is the simplest HACS-compatible setup for a dashboard/plugin repository. citeturn840225search0
+- Check browser console (F12)
+- Verify resource path:
+  `/hacsfiles/unifi-device-card/unifi-device-card.js`
 
-## Releasing
+### Changes not visible
 
-Releases are optional for HACS dashboard/plugin repositories. If you create GitHub releases, HACS can offer recent release versions in the install or upgrade flow; without releases it uses the default branch. citeturn840225search0turn840225search2
+- Hard refresh browser (`CTRL + F5`)
+- Or restart the Home Assistant frontend
 
-This repo includes:
-- a HACS validation workflow
-- a manual GitHub release workflow that can upload `dist/unifi-device-card.js`
+---
 
-## Development
-
-```bash
-npm install
-npm run build
-```
-
-At the moment the build script is a placeholder because the repo already ships a ready-to-use `dist/unifi-device-card.js`.
-
-## Roadmap
-
-- richer UniFi capability detection
-- better per-port metadata mapping
-- optional AP support
-- stronger config editor filtering by integration entry
-- localization
-- polished styling and theming
-
-## License
+## 📄 License
 
 MIT
