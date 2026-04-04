@@ -84,11 +84,7 @@ class UnifiDeviceCard extends HTMLElement {
       const discoveredPorts = discoverPorts(ctx?.entities || []);
       const mergedPorts = mergePortsWithLayout(ctx?.layout, discoveredPorts);
 
-      if (mergedPorts.length) {
-        this._selectedPort = mergedPorts[0].port;
-      } else {
-        this._selectedPort = null;
-      }
+      this._selectedPort = mergedPorts.length ? mergedPorts[0].port : null;
     } catch (err) {
       console.error("[unifi-device-card] Failed to load device context", err);
       if (token !== this._loadToken) return;
@@ -155,7 +151,8 @@ class UnifiDeviceCard extends HTMLElement {
           gap: 8px;
         }
 
-        .frontpanel.single-row .port-row {
+        .frontpanel.single-row .port-row,
+        .frontpanel.gateway-single-row .port-row {
           grid-template-columns: repeat(auto-fit, minmax(56px, 1fr));
         }
 
@@ -291,27 +288,6 @@ class UnifiDeviceCard extends HTMLElement {
     `;
   }
 
-  _renderGateway(title) {
-    const ctx = this._deviceContext;
-
-    this.shadowRoot.innerHTML = `
-      <ha-card>
-        <div class="header">
-          <div class="title">${title}</div>
-          <div class="subtitle">${ctx?.layout?.displayModel || ctx?.model || "Gateway"} · Version ${VERSION}</div>
-        </div>
-        <div class="section">
-          <div class="summary">
-            <div><strong>Typ:</strong> Gateway</div>
-            <div><strong>Modell:</strong> ${ctx?.layout?.displayModel || ctx?.model || "Unbekannt"}</div>
-            <div><strong>Hersteller:</strong> ${ctx?.manufacturer || "Unbekannt"}</div>
-          </div>
-        </div>
-      </ha-card>
-      ${this._styles()}
-    `;
-  }
-
   _renderPortButton(port, selectedPort) {
     const linkUp = isOn(this._hass, port.link_entity);
     const hasPoe = Boolean(port.power_cycle_entity);
@@ -331,14 +307,14 @@ class UnifiDeviceCard extends HTMLElement {
     `;
   }
 
-  _renderSwitch(title) {
+  _renderPanelAndDetail(title, kindLabel) {
     const ctx = this._deviceContext;
     const discoveredPorts = discoverPorts(ctx?.entities || []);
     const ports = mergePortsWithLayout(ctx?.layout, discoveredPorts);
     const selected =
       ports.find((p) => p.port === this._selectedPort) || ports[0] || null;
 
-    const rows = (ctx?.layout?.rows || []).map((rowPorts) => {
+    const layoutRows = (ctx?.layout?.rows || []).map((rowPorts) => {
       const rowItems = rowPorts
         .map((portNumber) => {
           const port = ports.find((p) => p.port === portNumber) || {
@@ -350,7 +326,6 @@ class UnifiDeviceCard extends HTMLElement {
             power_cycle_entity: null,
             raw_entities: [],
           };
-
           return this._renderPortButton(port, selected);
         })
         .join("");
@@ -358,12 +333,11 @@ class UnifiDeviceCard extends HTMLElement {
       return `<div class="port-row">${rowItems}</div>`;
     });
 
-    const extraPorts = ports
-      .filter((p) => !(ctx?.layout?.rows || []).flat().includes(p.port))
-      .sort((a, b) => a.port - b.port);
+    const layoutPorts = (ctx?.layout?.rows || []).flat();
+    const extraPorts = ports.filter((p) => !layoutPorts.includes(p.port));
 
     if (extraPorts.length) {
-      rows.push(
+      layoutRows.push(
         `<div class="port-row">${extraPorts
           .map((port) => this._renderPortButton(port, selected))
           .join("")}</div>`
@@ -418,10 +392,10 @@ class UnifiDeviceCard extends HTMLElement {
       <ha-card>
         <div class="header">
           <div class="title">${title}</div>
-          <div class="subtitle">${ctx?.layout?.displayModel || ctx?.model || "Switch"} · Version ${VERSION}</div>
+          <div class="subtitle">${ctx?.layout?.displayModel || ctx?.model || kindLabel} · Version ${VERSION}</div>
         </div>
         <div class="frontpanel ${ctx?.layout?.frontStyle || "single-row"}">
-          ${rows.join("") || `<div class="content muted">Keine Ports erkannt.</div>`}
+          ${layoutRows.join("") || `<div class="content muted">Keine Ports erkannt.</div>`}
         </div>
         <div class="section">
           <div class="layout-note">Layout: ${ctx?.layout?.frontStyle || "generisch"}</div>
@@ -448,6 +422,14 @@ class UnifiDeviceCard extends HTMLElement {
         await this._pressButton(btn.dataset.entity);
       });
     });
+  }
+
+  _renderGateway(title) {
+    this._renderPanelAndDetail(title, "Gateway");
+  }
+
+  _renderSwitch(title) {
+    this._renderPanelAndDetail(title, "Switch");
   }
 
   _render() {
@@ -501,5 +483,5 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: "unifi-device-card",
   name: "UniFi Device Card",
-  description: "A Lovelace card for supported UniFi switches and gateways.",
+  description: "A Lovelace card for UniFi switches and gateways.",
 });
