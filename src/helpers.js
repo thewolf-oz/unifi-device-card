@@ -1,4 +1,4 @@
-import { getDeviceLayout } from "./model-registry.js";
+import { getDeviceLayout, resolveModelKey } from "./model-registry.js";
 
 function normalize(value) {
   return String(value ?? "").trim();
@@ -8,9 +8,43 @@ function lower(value) {
   return normalize(value).toLowerCase();
 }
 
-/* ---------------------------
-   UNIFI SOURCE OF TRUTH
---------------------------- */
+function entityText(entity) {
+  return [
+    entity.entity_id,
+    entity.original_name,
+    entity.name,
+    entity.platform,
+    entity.device_class,
+    entity.translation_key,
+    entity.original_device_class,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
+function deviceText(device, entities) {
+  return [
+    device.name_by_user,
+    device.name,
+    device.model,
+    device.manufacturer,
+    device.hw_version,
+    device.serial_number,
+    ...entities.flatMap((e) => [
+      e.entity_id,
+      e.original_name,
+      e.name,
+      e.platform,
+      e.device_class,
+      e.translation_key,
+      e.original_device_class,
+    ]),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
 
 function isUnifiConfigEntry(entry) {
   return entry?.domain === "unifi" || entry?.domain === "unifi_network";
@@ -18,9 +52,7 @@ function isUnifiConfigEntry(entry) {
 
 function extractUnifiEntryIds(configEntries) {
   return new Set(
-    (configEntries || [])
-      .filter(isUnifiConfigEntry)
-      .map((e) => e.entry_id)
+    (configEntries || []).filter(isUnifiConfigEntry).map((entry) => entry.entry_id)
   );
 }
 
@@ -31,42 +63,55 @@ function isUnifiDevice(device, unifiEntryIds) {
   );
 }
 
-/* ---------------------------
-   DEVICE TYPE
---------------------------- */
-
 function classifyDevice(device, entities) {
+  const modelKey = resolveModelKey(device);
+  if (
+    modelKey === "UDRULT" ||
+    modelKey === "UCGULTRA" ||
+    modelKey === "UCGMAX" ||
+    modelKey === "UDMPRO" ||
+    modelKey === "UDMSE"
+  ) {
+    return "gateway";
+  }
+
+  if (
+    modelKey === "US8P60" ||
+    modelKey === "USMINI" ||
+    modelKey === "USL8LP" ||
+    modelKey === "USL8LPB" ||
+    modelKey === "USL16LP" ||
+    modelKey === "USL16LPB"
+  ) {
+    return "switch";
+  }
+
   const model = lower(device?.model);
   const name = lower(device?.name);
+  const userName = lower(device?.name_by_user);
 
-  // Gateway detection
   if (
     model.includes("udm") ||
     model.includes("ucg") ||
     model.includes("uxg") ||
     model.includes("gateway") ||
-    name.includes("gateway")
+    name.includes("gateway") ||
+    userName.includes("gateway")
   ) {
     return "gateway";
   }
 
-  // Switch detection
   const hasPorts = entities.some((e) => /_port_\d+_/i.test(e.entity_id));
-
   if (hasPorts) return "switch";
 
   return "unknown";
 }
 
-/* ---------------------------
-   DATA LOADING
---------------------------- */
-
 async function safeCallWS(hass, msg, fallback = []) {
   try {
     return await hass.callWS(msg);
   } catch (err) {
-    console.warn("[unifi-device-card] WS failed", msg?.type);
+    console.warn("[unifi-device-card] WS failed", msg?.type, err);
     return fallback;
   }
 }
@@ -80,24 +125,36 @@ async function getAllData(hass) {
 
   const entitiesByDevice = new Map();
 
-  for (const e of entities) {
-    if (!e.device_id) continue;
-    if (!entitiesByDevice.has(e.device_id)) {
-      entitiesByDevice.set(e.device_id, []);
+  for (const entity of entities) {
+    if (!entity.device_id) continue;
+    if (!entitiesByDevice.has(entity.device_id)) {
+      entitiesByDevice.set(entity.device_id, []);
     }
-    entitiesByDevice.get(e.device_id).push(e);
+    entitiesByDevice.get(entity.device_id).push(entity);
   }
 
   return { devices, entitiesByDevice, configEntries };
 }
 
-/* ---------------------------
-   PUBLIC API
---------------------------- */
+function buildDeviceLabel(device, type) {
+  const name =
+    normalize(device.name_by_user) ||
+    normalize(device.name) ||
+    normalize(device.model) ||
+    "Unknown device";
+
+  const model = normalize(device.model);
+  const typeLabel = type === "gateway" ? "gateway" : "switch";
+
+  if (model && lower(model) !== lower(name)) {
+    return `${name} · ${model} (${typeLabel})`;
+  }
+
+  return `${name} (${typeLabel})`;
+}
 
 export async function getUnifiDevices(hass) {
   const { devices, entitiesByDevice, configEntries } = await getAllData(hass);
-
   const unifiEntryIds = extractUnifiEntryIds(configEntries);
 
   return (devices || [])
@@ -105,9 +162,7 @@ export async function getUnifiDevices(hass) {
       if (!isUnifiDevice(device, unifiEntryIds)) return null;
 
       const entities = entitiesByDevice.get(device.id) || [];
-
       const type = classifyDevice(device, entities);
-
       if (type === "unknown") return null;
 
       return {
@@ -116,54 +171,56 @@ export async function getUnifiDevices(hass) {
           normalize(device.name_by_user) ||
           normalize(device.name) ||
           normalize(device.model),
-        label: `${device.name || device.model} (${type})`,
-        model: device.model,
+        label: buildDeviceLabel(device, type),
+        model: normalize(device.model),
         type,
       };
     })
     .filter(Boolean)
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .sort((a, b) => a.name.localeCompare(b.name, "de", { sensitivity: "base" }));
 }
-
-/* ---------------------------
-   DEVICE CONTEXT
---------------------------- */
 
 export async function getDeviceContext(hass, deviceId) {
   const { devices, entitiesByDevice, configEntries } = await getAllData(hass);
-
   const unifiEntryIds = extractUnifiEntryIds(configEntries);
 
   const device = devices.find((d) => d.id === deviceId);
   if (!device) return null;
-
   if (!isUnifiDevice(device, unifiEntryIds)) return null;
 
   const entities = entitiesByDevice.get(deviceId) || [];
-
   const type = classifyDevice(device, entities);
+  if (type === "unknown") return null;
 
-  const ports = discoverPorts(entities);
-  const layout = getDeviceLayout(device, ports);
+  const discoveredPorts = discoverPorts(entities);
+  const layout = getDeviceLayout(device, discoveredPorts);
 
   return {
     device,
     entities,
     type,
     layout,
-    name: device.name || device.model,
-    model: device.model,
+    name:
+      normalize(device.name_by_user) ||
+      normalize(device.name) ||
+      normalize(device.model),
+    model: normalize(device.model),
+    manufacturer: normalize(device.manufacturer),
   };
 }
 
-/* ---------------------------
-   PORT DISCOVERY
---------------------------- */
-
 function extractPortNumber(entity) {
-  const id = entity.entity_id;
+  const id = entity.entity_id || "";
+  const originalName = entity.original_name || "";
+  const name = entity.name || "";
 
-  const match = id.match(/_port_(\d+)_/i);
+  let match = id.match(/_port_(\d+)_/i);
+  if (match) return Number(match[1]);
+
+  match = originalName.match(/\bport\s+(\d+)\b/i);
+  if (match) return Number(match[1]);
+
+  match = name.match(/\bport\s+(\d+)\b/i);
   if (match) return Number(match[1]);
 
   return null;
@@ -178,6 +235,7 @@ function ensurePort(map, port) {
       poe_switch_entity: null,
       poe_power_entity: null,
       power_cycle_entity: null,
+      raw_entities: [],
     });
   }
   return map.get(port);
@@ -185,12 +243,66 @@ function ensurePort(map, port) {
 
 function classifyPortEntity(entity) {
   const id = lower(entity.entity_id);
+  const text = entityText(entity);
 
-  if (id.includes("link")) return "link_entity";
-  if (id.includes("speed")) return "speed_entity";
-  if (id.includes("poe_power")) return "poe_power_entity";
-  if (id.includes("poe")) return "poe_switch_entity";
-  if (id.includes("power_cycle")) return "power_cycle_entity";
+  if (entity.entity_id.startsWith("binary_sensor.")) {
+    if (
+      id.includes("_link") ||
+      id.includes("_connected") ||
+      id.includes("_connection") ||
+      text.includes(" link") ||
+      text.includes("connected") ||
+      text.includes("connection")
+    ) {
+      return "link_entity";
+    }
+  }
+
+  if (entity.entity_id.startsWith("sensor.")) {
+    if (
+      (id.includes("_state") || id.includes("_status")) &&
+      (text.includes("port") || text.includes("link") || text.includes("connected"))
+    ) {
+      return "link_entity";
+    }
+  }
+
+  if (
+    entity.entity_id.startsWith("sensor.") &&
+    (id.includes("_speed") ||
+      text.includes("speed") ||
+      text.includes("mbit/s") ||
+      text.includes("gbe") ||
+      text.includes("link speed"))
+  ) {
+    return "speed_entity";
+  }
+
+  if (
+    entity.entity_id.startsWith("switch.") &&
+    (id.includes("_poe") || text.includes("poe"))
+  ) {
+    return "poe_switch_entity";
+  }
+
+  if (
+    entity.entity_id.startsWith("sensor.") &&
+    (id.includes("_poe_power") ||
+      (text.includes("poe") && text.includes("power")) ||
+      (text.includes("poe") && text.includes("w")))
+  ) {
+    return "poe_power_entity";
+  }
+
+  if (
+    entity.entity_id.startsWith("button.") &&
+    (id.includes("power_cycle") ||
+      id.includes("restart") ||
+      id.includes("reboot") ||
+      (text.includes("power") && text.includes("cycle")))
+  ) {
+    return "power_cycle_entity";
+  }
 
   return null;
 }
@@ -198,46 +310,81 @@ function classifyPortEntity(entity) {
 export function discoverPorts(entities) {
   const ports = new Map();
 
-  for (const e of entities) {
-    const port = extractPortNumber(e);
+  for (const entity of entities || []) {
+    const port = extractPortNumber(entity);
     if (!port) continue;
 
     const row = ensurePort(ports, port);
+    row.raw_entities.push(entity.entity_id);
 
-    const type = classifyPortEntity(e);
+    const type = classifyPortEntity(entity);
     if (type && !row[type]) {
-      row[type] = e.entity_id;
+      row[type] = entity.entity_id;
+    }
+  }
+
+  for (const row of ports.values()) {
+    if (!row.power_cycle_entity) {
+      row.poe_switch_entity = null;
+      row.poe_power_entity = null;
     }
   }
 
   return Array.from(ports.values()).sort((a, b) => a.port - b.port);
 }
 
-/* ---------------------------
-   STATE HELPERS
---------------------------- */
+export function mergePortsWithLayout(layout, discoveredPorts) {
+  const byPort = new Map(discoveredPorts.map((p) => [p.port, p]));
+  const layoutPorts = (layout?.rows || []).flat();
+
+  const merged = [];
+
+  for (const portNumber of layoutPorts) {
+    merged.push(
+      byPort.get(portNumber) || {
+        port: portNumber,
+        link_entity: null,
+        speed_entity: null,
+        poe_switch_entity: null,
+        poe_power_entity: null,
+        power_cycle_entity: null,
+        raw_entities: [],
+      }
+    );
+  }
+
+  for (const port of discoveredPorts) {
+    if (!layoutPorts.includes(port.port)) {
+      merged.push(port);
+    }
+  }
+
+  return merged.sort((a, b) => a.port - b.port);
+}
 
 export function stateObj(hass, entityId) {
-  return entityId ? hass.states[entityId] : null;
+  return entityId ? hass.states[entityId] || null : null;
 }
 
 export function stateValue(hass, entityId, fallback = "—") {
-  const s = stateObj(hass, entityId);
-  return s ? s.state : fallback;
+  const state = stateObj(hass, entityId);
+  return state ? state.state : fallback;
 }
 
 export function isOn(hass, entityId) {
-  const s = stateObj(hass, entityId);
-  if (!s) return false;
+  const state = stateObj(hass, entityId);
+  if (!state) return false;
 
-  const v = String(s.state).toLowerCase();
-  return v === "on" || v === "connected" || v === "up";
+  const value = String(state.state).toLowerCase();
+  return value === "on" || value === "connected" || value === "up" || value === "true";
 }
 
 export function formatState(hass, entityId, fallback = "—") {
-  const s = stateObj(hass, entityId);
-  if (!s) return fallback;
+  const state = stateObj(hass, entityId);
+  if (!state) return fallback;
 
-  const unit = s.attributes?.unit_of_measurement;
-  return unit ? `${s.state} ${unit}` : s.state;
+  const unit = state.attributes?.unit_of_measurement;
+  if (state.state === "unknown" || state.state === "unavailable") return "—";
+
+  return unit ? `${state.state} ${unit}` : state.state;
 }
