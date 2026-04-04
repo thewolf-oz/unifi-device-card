@@ -80,7 +80,23 @@ export const MODEL_REGISTRY = {
     displayModel: "USW Lite 8 PoE",
   },
 
+  USL8LPB: {
+    kind: "switch",
+    frontStyle: "single-row",
+    rows: [range(1, 8)],
+    portCount: 8,
+    displayModel: "USW Lite 8 PoE",
+  },
+
   USL16LP: {
+    kind: "switch",
+    frontStyle: "dual-row",
+    rows: [oddRange(1, 16), evenRange(1, 16)],
+    portCount: 16,
+    displayModel: "USW Lite 16 PoE",
+  },
+
+  USL16LPB: {
     kind: "switch",
     frontStyle: "dual-row",
     rows: [oddRange(1, 16), evenRange(1, 16)],
@@ -150,10 +166,15 @@ export function resolveModelKey(device) {
 
     if (MODEL_REGISTRY[candidate]) return candidate;
 
+    if (candidate.includes("USL16LPB")) return "USL16LPB";
     if (candidate.includes("USL16LP")) return "USL16LP";
+
+    if (candidate.includes("USL8LPB")) return "USL8LPB";
     if (candidate.includes("USL8LP")) return "USL8LP";
+
     if (candidate.includes("US8P60")) return "US8P60";
     if (candidate.includes("USMINI")) return "USMINI";
+
     if (candidate.includes("UDRULT")) return "UDRULT";
     if (candidate.includes("UCGULTRA")) return "UCGULTRA";
     if (candidate.includes("CLOUDGATEWAYULTRA")) return "UCGULTRA";
@@ -170,10 +191,12 @@ export function inferPortCountFromModel(device) {
     [device?.model, device?.name, device?.name_by_user].filter(Boolean).join(" ")
   );
 
-  if (text.includes("USL16")) return 16;
+  if (text.includes("USL16LPB")) return 16;
+  if (text.includes("USL16LP")) return 16;
   if (text.includes("LITE16")) return 16;
 
-  if (text.includes("USL8")) return 8;
+  if (text.includes("USL8LPB")) return 8;
+  if (text.includes("USL8LP")) return 8;
   if (text.includes("LITE8")) return 8;
   if (text.includes("US8P60")) return 8;
   if (text.includes("US8")) return 8;
