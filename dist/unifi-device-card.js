@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.9ae332e */
+/* UniFi Device Card 0.0.0-dev.6f6b29f */
 
 // src/model-registry.js
 function range(start, end) {
@@ -9,6 +9,9 @@ function oddRange(start, end) {
 }
 function evenRange(start, end) {
   return range(start, end).filter((n) => n % 2 === 0);
+}
+function normalizeModelKey(value) {
+  return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 function defaultSwitchLayout(portCount) {
   if (portCount <= 8) {
@@ -95,23 +98,23 @@ var MODEL_REGISTRY = {
   },
   UDRULT: {
     kind: "gateway",
-    frontStyle: "gateway-compact",
-    rows: [],
-    portCount: 0,
+    frontStyle: "gateway-single-row",
+    rows: [range(1, 4)],
+    portCount: 4,
     displayModel: "Cloud Gateway Ultra"
   },
   UCGULTRA: {
     kind: "gateway",
-    frontStyle: "gateway-compact",
-    rows: [],
-    portCount: 0,
+    frontStyle: "gateway-single-row",
+    rows: [range(1, 4)],
+    portCount: 4,
     displayModel: "Cloud Gateway Ultra"
   },
   UCGMAX: {
     kind: "gateway",
-    frontStyle: "gateway-compact",
-    rows: [],
-    portCount: 0,
+    frontStyle: "gateway-single-row",
+    rows: [range(1, 5)],
+    portCount: 5,
     displayModel: "Cloud Gateway Max"
   },
   UDMPRO: {
@@ -129,9 +132,6 @@ var MODEL_REGISTRY = {
     displayModel: "UDM SE"
   }
 };
-function normalizeModelKey(value) {
-  return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-}
 function resolveModelKey(device) {
   const candidates = [
     device?.model,
@@ -152,6 +152,7 @@ function resolveModelKey(device) {
     if (candidate.includes("UCGULTRA")) return "UCGULTRA";
     if (candidate.includes("CLOUDGATEWAYULTRA")) return "UCGULTRA";
     if (candidate.includes("UCGMAX")) return "UCGMAX";
+    if (candidate.includes("CLOUDGATEWAYMAX")) return "UCGMAX";
     if (candidate.includes("UDMPRO")) return "UDMPRO";
     if (candidate.includes("UDMSE")) return "UDMSE";
   }
@@ -171,6 +172,11 @@ function inferPortCountFromModel(device) {
   if (text.includes("US8")) return 8;
   if (text.includes("USMINI")) return 5;
   if (text.includes("FLEXMINI")) return 5;
+  if (text.includes("UCGULTRA")) return 4;
+  if (text.includes("CLOUDGATEWAYULTRA")) return 4;
+  if (text.includes("UCGMAX")) return 5;
+  if (text.includes("UDMPRO")) return 8;
+  if (text.includes("UDMSE")) return 8;
   if (text.includes("24")) return 24;
   if (text.includes("48")) return 48;
   return null;
@@ -188,7 +194,7 @@ function getDeviceLayout(device, discoveredPorts = []) {
     return {
       modelKey: null,
       ...defaultSwitchLayout(inferredPortCount),
-      displayModel: device?.model || `UniFi Switch ${inferredPortCount}`
+      displayModel: device?.model || `UniFi Device ${inferredPortCount}`
     };
   }
   return {
@@ -219,41 +225,18 @@ function entityText(entity) {
     entity.original_device_class
   ].filter(Boolean).join(" ").toLowerCase();
 }
-function deviceText(device, entities) {
-  return [
-    device.name_by_user,
-    device.name,
-    device.model,
-    device.manufacturer,
-    device.hw_version,
-    device.serial_number,
-    ...entities.flatMap((e) => [
-      e.entity_id,
-      e.original_name,
-      e.name,
-      e.platform,
-      e.device_class,
-      e.translation_key,
-      e.original_device_class
-    ])
-  ].filter(Boolean).join(" ").toLowerCase();
-}
 function isUnifiConfigEntry(entry) {
-  const domain = lower(entry?.domain);
-  const title = lower(entry?.title);
-  return domain === "unifi" || domain === "unifi_network" || title.includes("unifi");
+  return entry?.domain === "unifi" || entry?.domain === "unifi_network";
 }
-function hasUbiquitiManufacturer(device) {
-  const manufacturer = lower(device?.manufacturer);
-  return manufacturer.includes("ubiquiti") || manufacturer.includes("ubiquiti networks") || manufacturer.includes("unifi");
+function extractUnifiEntryIds(configEntries) {
+  return new Set(
+    (configEntries || []).filter(isUnifiConfigEntry).map((entry) => entry.entry_id)
+  );
+}
+function isUnifiDevice(device, unifiEntryIds) {
+  return Array.isArray(device?.config_entries) && device.config_entries.some((id) => unifiEntryIds.has(id));
 }
 function classifyDevice(device, entities) {
-  const model = lower(device?.model);
-  const name = lower(device?.name);
-  const userName = lower(device?.name_by_user);
-  const text = deviceText(device, entities);
-  const isAccessPoint = text.includes("access point") || text.includes(" uap") || text.includes("uap-") || text.includes(" nanohd") || text.includes(" u6") || text.includes(" u7") || text.includes(" mesh");
-  if (isAccessPoint) return "access_point";
   const modelKey = resolveModelKey(device);
   if (modelKey === "UDRULT" || modelKey === "UCGULTRA" || modelKey === "UCGMAX" || modelKey === "UDMPRO" || modelKey === "UDMSE") {
     return "gateway";
@@ -261,28 +244,21 @@ function classifyDevice(device, entities) {
   if (modelKey === "US8P60" || modelKey === "USMINI" || modelKey === "USL8LP" || modelKey === "USL8LPB" || modelKey === "USL16LP" || modelKey === "USL16LPB") {
     return "switch";
   }
-  const isGateway = model.startsWith("udm") || model.startsWith("ucg") || model.startsWith("uxg") || model.includes("udrult") || model.includes("ucg-ultra") || model.includes("gateway") || name.includes("cloud gateway") || userName.includes("cloud gateway") || name.includes("gateway ultra") || userName.includes("gateway ultra") || name.includes("ucg") || userName.includes("ucg") || name.includes("udm") || userName.includes("udm") || name.includes("uxg") || userName.includes("uxg") || text.includes("dream machine") || text.includes("cloud gateway ultra") || text.includes("gateway ultra");
-  if (isGateway) return "gateway";
-  const hasPortEntities = entities.some((e) => /_port_\d+_/i.test(e.entity_id));
-  const isSwitchByModel = model.startsWith("usw") || model.startsWith("us-") || model.includes("usmini") || model.includes("us8") || model.includes("us8p") || model.includes("usl8") || model.includes("usl8lp") || model.includes("usl8lpb") || model.includes("usl16") || model.includes("usl16lp") || model.includes("usl16lpb") || model.includes("flex");
-  const isSwitchByName = name.includes("usw") || name.includes("us 8") || userName.includes("usw") || userName.includes("us 8");
-  if (hasPortEntities || isSwitchByModel || isSwitchByName) return "switch";
-  return "unknown";
-}
-function buildDeviceLabel(device, type) {
-  const name = normalize(device.name_by_user) || normalize(device.name) || normalize(device.model) || "Unknown device";
-  const model = normalize(device.model);
-  const typeLabel = type === "switch" ? "switch" : type === "gateway" ? "gateway" : type === "access_point" ? "ap" : "unknown";
-  if (model && lower(model) !== lower(name)) {
-    return `${name} \xB7 ${model} (${typeLabel})`;
+  const model = lower(device?.model);
+  const name = lower(device?.name);
+  const userName = lower(device?.name_by_user);
+  if (model.includes("udm") || model.includes("ucg") || model.includes("uxg") || model.includes("gateway") || name.includes("gateway") || userName.includes("gateway")) {
+    return "gateway";
   }
-  return `${name} (${typeLabel})`;
+  const hasPorts = entities.some((e) => /_port_\d+_/i.test(e.entity_id));
+  if (hasPorts) return "switch";
+  return "unknown";
 }
 async function safeCallWS(hass, msg, fallback = []) {
   try {
     return await hass.callWS(msg);
   } catch (err) {
-    console.warn("[unifi-device-card] WS call failed:", msg?.type, err);
+    console.warn("[unifi-device-card] WS failed", msg?.type, err);
     return fallback;
   }
 }
@@ -300,58 +276,43 @@ async function getAllData(hass) {
     }
     entitiesByDevice.get(entity.device_id).push(entity);
   }
-  return { devices, entities, configEntries, entitiesByDevice };
+  return { devices, entitiesByDevice, configEntries };
 }
-function extractUnifiEntryIds(configEntries) {
-  return new Set(
-    (configEntries || []).filter(isUnifiConfigEntry).map((entry) => entry.entry_id)
-  );
-}
-function deviceBelongsToUnifi(device, unifiEntryIds, entities) {
-  const byConfigEntry = unifiEntryIds.size > 0 && Array.isArray(device?.config_entries) && device.config_entries.some((id) => unifiEntryIds.has(id));
-  if (byConfigEntry) return true;
-  if (!hasUbiquitiManufacturer(device)) return false;
-  const model = lower(device?.model);
-  const name = lower(device?.name);
-  const userName = lower(device?.name_by_user);
-  const strongModelHint = model.startsWith("usw") || model.startsWith("us-") || model.startsWith("udm") || model.startsWith("ucg") || model.startsWith("uxg") || model.includes("usmini") || model.includes("us8") || model.includes("us8p") || model.includes("usl8") || model.includes("usl8lp") || model.includes("usl8lpb") || model.includes("usl16") || model.includes("usl16lp") || model.includes("usl16lpb") || model.includes("udrult") || model.includes("gateway");
-  const strongNameHint = name.includes("usw") || name.includes("us 8") || name.includes("cloud gateway") || name.includes("gateway ultra") || name.includes("udm") || name.includes("ucg") || name.includes("uxg") || userName.includes("usw") || userName.includes("us 8") || userName.includes("cloud gateway") || userName.includes("gateway ultra") || userName.includes("udm") || userName.includes("ucg") || userName.includes("uxg");
-  const strongEntityHint = entities.some((entity) => {
-    const eid = lower(entity.entity_id);
-    const txt = entityText(entity);
-    return eid.includes("usw") || eid.includes("us8") || eid.includes("us_8") || eid.includes("ucg") || eid.includes("udm") || eid.includes("uxg") || txt.includes("ubiquiti") || txt.includes("unifi");
-  });
-  return strongModelHint || strongNameHint || strongEntityHint;
+function buildDeviceLabel(device, type) {
+  const name = normalize(device.name_by_user) || normalize(device.name) || normalize(device.model) || "Unknown device";
+  const model = normalize(device.model);
+  const typeLabel = type === "gateway" ? "gateway" : "switch";
+  if (model && lower(model) !== lower(name)) {
+    return `${name} \xB7 ${model} (${typeLabel})`;
+  }
+  return `${name} (${typeLabel})`;
 }
 async function getUnifiDevices(hass) {
-  const { devices, configEntries, entitiesByDevice } = await getAllData(hass);
+  const { devices, entitiesByDevice, configEntries } = await getAllData(hass);
   const unifiEntryIds = extractUnifiEntryIds(configEntries);
   return (devices || []).map((device) => {
+    if (!isUnifiDevice(device, unifiEntryIds)) return null;
     const entities = entitiesByDevice.get(device.id) || [];
-    const belongsToUnifi = deviceBelongsToUnifi(device, unifiEntryIds, entities);
-    if (!belongsToUnifi) return null;
     const type = classifyDevice(device, entities);
-    if (type !== "switch" && type !== "gateway") return null;
+    if (type === "unknown") return null;
     return {
       id: device.id,
-      name: normalize(device.name_by_user) || normalize(device.name) || normalize(device.model) || "Unknown device",
+      name: normalize(device.name_by_user) || normalize(device.name) || normalize(device.model),
       label: buildDeviceLabel(device, type),
       model: normalize(device.model),
-      manufacturer: normalize(device.manufacturer),
       type
     };
-  }).filter(Boolean).sort((a, b) => a.label.localeCompare(b.label, "de", { sensitivity: "base" }));
+  }).filter(Boolean).sort((a, b) => a.name.localeCompare(b.name, "de", { sensitivity: "base" }));
 }
 async function getDeviceContext(hass, deviceId) {
-  const { devices, configEntries, entitiesByDevice } = await getAllData(hass);
+  const { devices, entitiesByDevice, configEntries } = await getAllData(hass);
   const unifiEntryIds = extractUnifiEntryIds(configEntries);
-  const device = (devices || []).find((d) => d.id === deviceId);
+  const device = devices.find((d) => d.id === deviceId);
   if (!device) return null;
+  if (!isUnifiDevice(device, unifiEntryIds)) return null;
   const entities = entitiesByDevice.get(deviceId) || [];
-  const belongsToUnifi = deviceBelongsToUnifi(device, unifiEntryIds, entities);
-  if (!belongsToUnifi) return null;
   const type = classifyDevice(device, entities);
-  if (type !== "switch" && type !== "gateway") return null;
+  if (type === "unknown") return null;
   const discoveredPorts = discoverPorts(entities);
   const layout = getDeviceLayout(device, discoveredPorts);
   return {
@@ -359,7 +320,7 @@ async function getDeviceContext(hass, deviceId) {
     entities,
     type,
     layout,
-    name: normalize(device.name_by_user) || normalize(device.name) || normalize(device.model) || "Unknown device",
+    name: normalize(device.name_by_user) || normalize(device.name) || normalize(device.model),
     model: normalize(device.model),
     manufacturer: normalize(device.manufacturer)
   };
@@ -391,28 +352,28 @@ function ensurePort(map, port) {
   return map.get(port);
 }
 function classifyPortEntity(entity) {
-  const eid = lower(entity.entity_id);
+  const id = lower(entity.entity_id);
   const text = entityText(entity);
   if (entity.entity_id.startsWith("binary_sensor.")) {
-    if (eid.includes("_link") || eid.includes("_connected") || eid.includes("_connection") || text.includes(" link") || text.includes("connected") || text.includes("connection")) {
+    if (id.includes("_link") || id.includes("_connected") || id.includes("_connection") || text.includes(" link") || text.includes("connected") || text.includes("connection")) {
       return "link_entity";
     }
   }
   if (entity.entity_id.startsWith("sensor.")) {
-    if ((eid.includes("_state") || eid.includes("_status")) && (text.includes("port") || text.includes("link") || text.includes("connected"))) {
+    if ((id.includes("_state") || id.includes("_status")) && (text.includes("port") || text.includes("link") || text.includes("connected"))) {
       return "link_entity";
     }
   }
-  if (entity.entity_id.startsWith("sensor.") && (eid.includes("_speed") || text.includes("speed") || text.includes("mbit/s") || text.includes("gbe") || text.includes("link speed"))) {
+  if (entity.entity_id.startsWith("sensor.") && (id.includes("_speed") || text.includes("speed") || text.includes("mbit/s") || text.includes("gbe") || text.includes("link speed"))) {
     return "speed_entity";
   }
-  if (entity.entity_id.startsWith("switch.") && (eid.includes("_poe") || text.includes("poe"))) {
+  if (entity.entity_id.startsWith("switch.") && (id.includes("_poe") || text.includes("poe"))) {
     return "poe_switch_entity";
   }
-  if (entity.entity_id.startsWith("sensor.") && (eid.includes("_poe_power") || text.includes("poe") && text.includes("power") || text.includes("poe") && text.includes("w"))) {
+  if (entity.entity_id.startsWith("sensor.") && (id.includes("_poe_power") || text.includes("poe") && text.includes("power") || text.includes("poe") && text.includes("w"))) {
     return "poe_power_entity";
   }
-  if (entity.entity_id.startsWith("button.") && (eid.includes("power_cycle") || eid.includes("restart") || eid.includes("reboot") || text.includes("power") && text.includes("cycle"))) {
+  if (entity.entity_id.startsWith("button.") && (id.includes("power_cycle") || id.includes("restart") || id.includes("reboot") || text.includes("power") && text.includes("cycle"))) {
     return "power_cycle_entity";
   }
   return null;
@@ -424,9 +385,9 @@ function discoverPorts(entities) {
     if (!port) continue;
     const row = ensurePort(ports, port);
     row.raw_entities.push(entity.entity_id);
-    const slot = classifyPortEntity(entity);
-    if (slot && !row[slot]) {
-      row[slot] = entity.entity_id;
+    const type = classifyPortEntity(entity);
+    if (type && !row[type]) {
+      row[type] = entity.entity_id;
     }
   }
   for (const row of ports.values()) {
@@ -465,23 +426,21 @@ function stateObj(hass, entityId) {
   return entityId ? hass.states[entityId] || null : null;
 }
 function stateValue(hass, entityId, fallback = "\u2014") {
-  const st = stateObj(hass, entityId);
-  if (!st) return fallback;
-  return st.state ?? fallback;
+  const state = stateObj(hass, entityId);
+  return state ? state.state : fallback;
 }
 function isOn(hass, entityId) {
-  const st = stateObj(hass, entityId);
-  if (!st) return false;
-  const value = String(st.state ?? "").toLowerCase();
+  const state = stateObj(hass, entityId);
+  if (!state) return false;
+  const value = String(state.state).toLowerCase();
   return value === "on" || value === "connected" || value === "up" || value === "true";
 }
 function formatState(hass, entityId, fallback = "\u2014") {
-  const st = stateObj(hass, entityId);
-  if (!st) return fallback;
-  const state = st.state ?? fallback;
-  const unit = st.attributes?.unit_of_measurement || "";
-  if (state === "unknown" || state === "unavailable") return "\u2014";
-  return unit ? `${state} ${unit}` : String(state);
+  const state = stateObj(hass, entityId);
+  if (!state) return fallback;
+  const unit = state.attributes?.unit_of_measurement;
+  if (state.state === "unknown" || state.state === "unavailable") return "\u2014";
+  return unit ? `${state.state} ${unit}` : state.state;
 }
 
 // src/unifi-device-card-editor.js
@@ -665,7 +624,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.9ae332e";
+var VERSION = "0.0.0-dev.6f6b29f";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
