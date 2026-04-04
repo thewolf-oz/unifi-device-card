@@ -1,4 +1,3 @@
-import { getUnifiDevices } from "./helpers.js";
 import "./unifi-device-card-editor.js";
 
 const VERSION = __VERSION__;
@@ -8,16 +7,18 @@ class UnifiDeviceCard extends HTMLElement {
     return document.createElement("unifi-device-card-editor");
   }
 
-  setConfig(config) {
-    if (!config.device_id) {
-      throw new Error("device_id required");
-    }
+  static getStubConfig() {
+    return {};
+  }
 
-    this._config = config;
+  setConfig(config) {
+    this._config = config || {};
 
     if (!this.shadowRoot) {
       this.attachShadow({ mode: "open" });
     }
+
+    this._render();
   }
 
   set hass(hass) {
@@ -25,13 +26,49 @@ class UnifiDeviceCard extends HTMLElement {
     this._render();
   }
 
+  getCardSize() {
+    return 3;
+  }
+
   _render() {
+    if (!this.shadowRoot) return;
+
+    const deviceId = this._config?.device_id || "";
+    const title = this._config?.name || `UniFi Device Card v${VERSION}`;
+
+    if (!deviceId) {
+      this.shadowRoot.innerHTML = `
+        <ha-card header="${title}">
+          <div class="content">
+            Bitte im Karteneditor ein UniFi-Gerät auswählen.
+          </div>
+        </ha-card>
+
+        <style>
+          .content {
+            padding: 16px;
+            color: var(--secondary-text-color);
+          }
+        </style>
+      `;
+      return;
+    }
+
     this.shadowRoot.innerHTML = `
-      <ha-card header="UniFi Device Card v${VERSION}">
-        <div style="padding:16px">
-          Device ID: ${this._config.device_id}
+      <ha-card header="${title}">
+        <div class="content">
+          <div><strong>Version:</strong> ${VERSION}</div>
+          <div><strong>Device ID:</strong> ${deviceId}</div>
         </div>
       </ha-card>
+
+      <style>
+        .content {
+          padding: 16px;
+          display: grid;
+          gap: 8px;
+        }
+      </style>
     `;
   }
 }
@@ -42,5 +79,5 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: "unifi-device-card",
   name: "UniFi Device Card",
-  description: "UniFi devices",
+  description: "A Lovelace card for supported UniFi switches and gateways.",
 });
