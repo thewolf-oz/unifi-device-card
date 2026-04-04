@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.85a2427 */
+/* UniFi Device Card 0.0.0-dev.fe473c4 */
 
 // src/helpers.js
 function normalize(value) {
@@ -11,6 +11,15 @@ function deviceLabel(device) {
   const name = normalize(device.name_by_user) || normalize(device.name) || normalize(device.model) || "Unknown device";
   const model = normalize(device.model);
   return model && lower(model) !== lower(name) ? `${name} \xB7 ${model}` : name;
+}
+function entityText(entity) {
+  return [
+    entity.entity_id,
+    entity.original_name,
+    entity.name,
+    entity.platform,
+    entity.device_class
+  ].filter(Boolean).join(" ").toLowerCase();
 }
 function deviceText(device, entities) {
   return [
@@ -72,6 +81,100 @@ async function getUnifiDevices(hass) {
       valid: isLikelyUnifi(device, deviceEntities) && (type === "switch" || type === "gateway")
     };
   }).filter((d) => d.valid).sort((a, b) => a.label.localeCompare(b.label, "de", { sensitivity: "base" }));
+}
+async function getDeviceContext(hass, deviceId) {
+  const { devices, entitiesByDevice } = await getAllDevices(hass);
+  const device = devices.find((d) => d.id === deviceId);
+  if (!device) return null;
+  const entities = entitiesByDevice.get(deviceId) || [];
+  const type = classifyDevice(device, entities);
+  return {
+    device,
+    entities,
+    type,
+    name: normalize(device.name_by_user) || normalize(device.name) || normalize(device.model) || "Unknown device",
+    model: normalize(device.model),
+    manufacturer: normalize(device.manufacturer)
+  };
+}
+function extractPortNumber(entity) {
+  const id = entity.entity_id || "";
+  const originalName = entity.original_name || "";
+  const name = entity.name || "";
+  let match = id.match(/_port_(\d+)_/i);
+  if (match) return Number(match[1]);
+  match = originalName.match(/\bport\s+(\d+)\b/i);
+  if (match) return Number(match[1]);
+  match = name.match(/\bport\s+(\d+)\b/i);
+  if (match) return Number(match[1]);
+  return null;
+}
+function ensurePort(map, port) {
+  if (!map.has(port)) {
+    map.set(port, {
+      port,
+      link_entity: null,
+      speed_entity: null,
+      poe_switch_entity: null,
+      poe_power_entity: null,
+      power_cycle_entity: null,
+      raw_entities: []
+    });
+  }
+  return map.get(port);
+}
+function classifyPortEntity(entity) {
+  const eid = lower(entity.entity_id);
+  const text = entityText(entity);
+  if (entity.entity_id.startsWith("binary_sensor.") && (eid.includes("_link") || text.includes(" link"))) {
+    return "link_entity";
+  }
+  if (entity.entity_id.startsWith("sensor.") && (eid.includes("_speed") || text.includes("speed"))) {
+    return "speed_entity";
+  }
+  if (entity.entity_id.startsWith("switch.") && (eid.includes("_poe") || text.includes("poe"))) {
+    return "poe_switch_entity";
+  }
+  if (entity.entity_id.startsWith("sensor.") && (eid.includes("_poe_power") || text.includes("poe") && text.includes("power") || text.includes("poe") && text.includes("w"))) {
+    return "poe_power_entity";
+  }
+  if (entity.entity_id.startsWith("button.") && (eid.includes("power_cycle") || eid.includes("restart") || text.includes("power") && text.includes("cycle"))) {
+    return "power_cycle_entity";
+  }
+  return null;
+}
+function discoverPorts(entities) {
+  const ports = /* @__PURE__ */ new Map();
+  for (const entity of entities || []) {
+    const port = extractPortNumber(entity);
+    if (!port) continue;
+    const row = ensurePort(ports, port);
+    row.raw_entities.push(entity.entity_id);
+    const slot = classifyPortEntity(entity);
+    if (slot && !row[slot]) {
+      row[slot] = entity.entity_id;
+    }
+  }
+  return Array.from(ports.values()).sort((a, b) => a.port - b.port);
+}
+function stateObj(hass, entityId) {
+  return entityId ? hass.states[entityId] || null : null;
+}
+function stateValue(hass, entityId, fallback = "\u2014") {
+  const st = stateObj(hass, entityId);
+  if (!st) return fallback;
+  return st.state ?? fallback;
+}
+function isOn(hass, entityId) {
+  return stateValue(hass, entityId, "off") === "on";
+}
+function formatState(hass, entityId, fallback = "\u2014") {
+  const st = stateObj(hass, entityId);
+  if (!st) return fallback;
+  const state = st.state ?? fallback;
+  const unit = st.attributes?.unit_of_measurement || "";
+  if (state === "unknown" || state === "unavailable") return "\u2014";
+  return unit ? `${state} ${unit}` : String(state);
 }
 
 // src/unifi-device-card-editor.js
@@ -228,7 +331,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.85a2427";
+var VERSION = "0.0.0-dev.fe473c4";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
@@ -236,57 +339,315 @@ var UnifiDeviceCard = class extends HTMLElement {
   static getStubConfig() {
     return {};
   }
+  constructor() {
+    super();
+    this.attachShadow({ mode: "open" });
+    this._config = {};
+    this._deviceContext = null;
+    this._selectedPort = null;
+    this._loading = false;
+    this._loadToken = 0;
+  }
   setConfig(config) {
     this._config = config || {};
-    if (!this.shadowRoot) {
-      this.attachShadow({ mode: "open" });
-    }
     this._render();
   }
   set hass(hass) {
     this._hass = hass;
+    this._ensureLoaded();
     this._render();
   }
   getCardSize() {
-    return 3;
+    return 6;
   }
-  _render() {
-    if (!this.shadowRoot) return;
-    const deviceId = this._config?.device_id || "";
-    const title = this._config?.name || `UniFi Device Card v${VERSION}`;
-    if (!deviceId) {
-      this.shadowRoot.innerHTML = `
-        <ha-card header="${title}">
-          <div class="content">
-            Bitte im Karteneditor ein UniFi-Ger\xE4t ausw\xE4hlen.
-          </div>
-        </ha-card>
-
-        <style>
-          .content {
-            padding: 16px;
-            color: var(--secondary-text-color);
-          }
-        </style>
-      `;
-      return;
+  async _ensureLoaded() {
+    if (!this._hass || !this._config?.device_id) return;
+    const currentId = this._config.device_id;
+    if (this._deviceContext?.device?.id === currentId) return;
+    this._loading = true;
+    this._render();
+    const token = ++this._loadToken;
+    try {
+      const ctx = await getDeviceContext(this._hass, currentId);
+      if (token !== this._loadToken) return;
+      this._deviceContext = ctx;
+      if (ctx?.type === "switch") {
+        const ports = discoverPorts(ctx.entities);
+        if (ports.length && !this._selectedPort) {
+          this._selectedPort = ports[0].port;
+        }
+      } else {
+        this._selectedPort = null;
+      }
+    } catch (err) {
+      console.error("[unifi-device-card] Failed to load device context", err);
+      if (token !== this._loadToken) return;
+      this._deviceContext = null;
     }
+    this._loading = false;
+    this._render();
+  }
+  _selectPort(port) {
+    this._selectedPort = port;
+    this._render();
+  }
+  async _toggleEntity(entityId) {
+    if (!entityId || !this._hass) return;
+    const [domain] = entityId.split(".");
+    await this._hass.callService(domain, "toggle", { entity_id: entityId });
+  }
+  async _pressButton(entityId) {
+    if (!entityId || !this._hass) return;
+    await this._hass.callService("button", "press", { entity_id: entityId });
+  }
+  _renderEmpty(title) {
     this.shadowRoot.innerHTML = `
       <ha-card header="${title}">
-        <div class="content">
-          <div><strong>Version:</strong> ${VERSION}</div>
-          <div><strong>Device ID:</strong> ${deviceId}</div>
-        </div>
+        <div class="content muted">Bitte im Karteneditor ein UniFi-Ger\xE4t ausw\xE4hlen.</div>
       </ha-card>
-
+      ${this._styles()}
+    `;
+  }
+  _styles() {
+    return `
       <style>
         .content {
           padding: 16px;
+        }
+
+        .muted {
+          color: var(--secondary-text-color);
+        }
+
+        .grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(56px, 1fr));
+          gap: 8px;
+          padding: 16px;
+          padding-bottom: 8px;
+        }
+
+        .port {
+          border: none;
+          border-radius: 12px;
+          min-height: 64px;
+          cursor: pointer;
+          color: white;
+          font: inherit;
+          display: grid;
+          place-items: center;
+          gap: 2px;
+          padding: 8px 4px;
+          background: #555;
+        }
+
+        .port.up {
+          background: #2e7d32;
+        }
+
+        .port.down {
+          background: #555;
+        }
+
+        .port.selected {
+          outline: 2px solid var(--primary-color);
+          outline-offset: 2px;
+        }
+
+        .port-num {
+          font-size: 14px;
+          font-weight: 700;
+          line-height: 1;
+        }
+
+        .port-icon {
+          font-size: 16px;
+          line-height: 1;
+        }
+
+        .section {
+          padding: 16px;
+          padding-top: 8px;
+          display: grid;
+          gap: 12px;
+        }
+
+        .port-detail {
+          border-top: 1px solid var(--divider-color);
+          padding-top: 12px;
+          display: grid;
+          gap: 10px;
+        }
+
+        .detail-title {
+          font-size: 16px;
+          font-weight: 700;
+        }
+
+        .detail-grid {
+          display: grid;
+          gap: 8px;
+        }
+
+        .row {
+          display: grid;
+          grid-template-columns: 140px 1fr;
+          gap: 8px;
+          align-items: center;
+        }
+
+        .row .label {
+          color: var(--secondary-text-color);
+        }
+
+        .actions {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+          margin-top: 4px;
+        }
+
+        .action-btn {
+          border: none;
+          border-radius: 10px;
+          padding: 10px 12px;
+          cursor: pointer;
+          font: inherit;
+          background: var(--primary-color);
+          color: var(--text-primary-color, white);
+        }
+
+        .action-btn.secondary {
+          background: var(--secondary-background-color, #666);
+          color: var(--primary-text-color);
+        }
+
+        .summary {
           display: grid;
           gap: 8px;
         }
       </style>
     `;
+  }
+  _renderGateway(title) {
+    const ctx = this._deviceContext;
+    this.shadowRoot.innerHTML = `
+      <ha-card header="${title}">
+        <div class="section">
+          <div class="summary">
+            <div><strong>Typ:</strong> Gateway</div>
+            <div><strong>Modell:</strong> ${ctx?.model || "Unbekannt"}</div>
+            <div><strong>Version:</strong> ${VERSION}</div>
+          </div>
+        </div>
+      </ha-card>
+      ${this._styles()}
+    `;
+  }
+  _renderSwitch(title) {
+    const ctx = this._deviceContext;
+    const ports = discoverPorts(ctx?.entities || []);
+    const selected = ports.find((p) => p.port === this._selectedPort) || ports[0] || null;
+    const grid = ports.map((p) => {
+      const linkUp = isOn(this._hass, p.link_entity);
+      const poeOn = p.poe_switch_entity ? isOn(this._hass, p.poe_switch_entity) : false;
+      return `
+          <button
+            class="port ${linkUp ? "up" : "down"} ${selected?.port === p.port ? "selected" : ""}"
+            data-port="${p.port}"
+            title="Port ${p.port}"
+          >
+            <div class="port-num">${p.port}</div>
+            <div class="port-icon">${poeOn ? "\u26A1" : "\u21C4"}</div>
+          </button>
+        `;
+    }).join("");
+    const detail = selected ? `
+        <div class="port-detail">
+          <div class="detail-title">Port ${selected.port}</div>
+
+          <div class="detail-grid">
+            <div class="row">
+              <div class="label">Link</div>
+              <div>${stateValue(this._hass, selected.link_entity, "\u2014")}</div>
+            </div>
+            <div class="row">
+              <div class="label">Speed</div>
+              <div>${formatState(this._hass, selected.speed_entity, "\u2014")}</div>
+            </div>
+            <div class="row">
+              <div class="label">PoE</div>
+              <div>${selected.poe_switch_entity ? stateValue(this._hass, selected.poe_switch_entity, "\u2014") : "Nicht verf\xFCgbar"}</div>
+            </div>
+            <div class="row">
+              <div class="label">PoE Leistung</div>
+              <div>${formatState(this._hass, selected.poe_power_entity, "\u2014")}</div>
+            </div>
+          </div>
+
+          <div class="actions">
+            ${selected.poe_switch_entity ? `<button class="action-btn" data-action="toggle-poe" data-entity="${selected.poe_switch_entity}">
+                    PoE ${isOn(this._hass, selected.poe_switch_entity) ? "Ausschalten" : "Einschalten"}
+                  </button>` : ""}
+            ${selected.power_cycle_entity ? `<button class="action-btn secondary" data-action="power-cycle" data-entity="${selected.power_cycle_entity}">
+                    Power Cycle
+                  </button>` : ""}
+          </div>
+        </div>
+      ` : `<div class="muted">Keine Ports erkannt.</div>`;
+    this.shadowRoot.innerHTML = `
+      <ha-card header="${title}">
+        <div class="content muted">Version ${VERSION}</div>
+        <div class="grid">${grid || `<div class="content muted">Keine Ports erkannt.</div>`}</div>
+        <div class="section">${detail}</div>
+      </ha-card>
+      ${this._styles()}
+    `;
+    this.shadowRoot.querySelectorAll(".port").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        this._selectPort(Number(btn.dataset.port));
+      });
+    });
+    this.shadowRoot.querySelectorAll("[data-action='toggle-poe']").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        await this._toggleEntity(btn.dataset.entity);
+      });
+    });
+    this.shadowRoot.querySelectorAll("[data-action='power-cycle']").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        await this._pressButton(btn.dataset.entity);
+      });
+    });
+  }
+  _render() {
+    const title = this._config?.name || `UniFi Device Card v${VERSION}`;
+    if (!this._config?.device_id) {
+      this._renderEmpty(title);
+      return;
+    }
+    if (this._loading) {
+      this.shadowRoot.innerHTML = `
+        <ha-card header="${title}">
+          <div class="content muted">Lade Ger\xE4tedaten\u2026</div>
+        </ha-card>
+        ${this._styles()}
+      `;
+      return;
+    }
+    if (!this._deviceContext) {
+      this.shadowRoot.innerHTML = `
+        <ha-card header="${title}">
+          <div class="content muted">Keine Ger\xE4tedaten verf\xFCgbar.</div>
+        </ha-card>
+        ${this._styles()}
+      `;
+      return;
+    }
+    if (this._deviceContext.type === "switch") {
+      this._renderSwitch(title);
+      return;
+    }
+    this._renderGateway(title);
   }
 };
 customElements.define("unifi-device-card", UnifiDeviceCard);
