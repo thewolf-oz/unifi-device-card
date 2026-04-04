@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.4ddb613 */
+/* UniFi Device Card 0.0.0-dev.7fa9105 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -72,7 +72,21 @@ var MODEL_REGISTRY = {
     portCount: 8,
     displayModel: "USW Lite 8 PoE"
   },
+  USL8LPB: {
+    kind: "switch",
+    frontStyle: "single-row",
+    rows: [range(1, 8)],
+    portCount: 8,
+    displayModel: "USW Lite 8 PoE"
+  },
   USL16LP: {
+    kind: "switch",
+    frontStyle: "dual-row",
+    rows: [oddRange(1, 16), evenRange(1, 16)],
+    portCount: 16,
+    displayModel: "USW Lite 16 PoE"
+  },
+  USL16LPB: {
     kind: "switch",
     frontStyle: "dual-row",
     rows: [oddRange(1, 16), evenRange(1, 16)],
@@ -128,7 +142,9 @@ function resolveModelKey(device) {
   for (const candidate of candidates) {
     if (!candidate) continue;
     if (MODEL_REGISTRY[candidate]) return candidate;
+    if (candidate.includes("USL16LPB")) return "USL16LPB";
     if (candidate.includes("USL16LP")) return "USL16LP";
+    if (candidate.includes("USL8LPB")) return "USL8LPB";
     if (candidate.includes("USL8LP")) return "USL8LP";
     if (candidate.includes("US8P60")) return "US8P60";
     if (candidate.includes("USMINI")) return "USMINI";
@@ -145,9 +161,11 @@ function inferPortCountFromModel(device) {
   const text = normalizeModelKey(
     [device?.model, device?.name, device?.name_by_user].filter(Boolean).join(" ")
   );
-  if (text.includes("USL16")) return 16;
+  if (text.includes("USL16LPB")) return 16;
+  if (text.includes("USL16LP")) return 16;
   if (text.includes("LITE16")) return 16;
-  if (text.includes("USL8")) return 8;
+  if (text.includes("USL8LPB")) return 8;
+  if (text.includes("USL8LP")) return 8;
   if (text.includes("LITE8")) return 8;
   if (text.includes("US8P60")) return 8;
   if (text.includes("US8")) return 8;
@@ -637,7 +655,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.4ddb613";
+var VERSION = "0.0.0-dev.7fa9105";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
