@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.461f142 */
+/* UniFi Device Card 0.0.0-dev.d4b2194 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -77,6 +77,15 @@ var MODEL_REGISTRY = {
     theme: "white",
     specialSlots: []
   },
+  USWED35: {
+    kind: "switch",
+    frontStyle: "single-row",
+    rows: [range(1, 5)],
+    portCount: 5,
+    displayModel: "USW Flex Mini 2.5G",
+    theme: "white",
+    specialSlots: []
+  },
   USL8LP: {
     kind: "switch",
     frontStyle: "single-row",
@@ -125,8 +134,8 @@ var MODEL_REGISTRY = {
   UCGULTRA: {
     kind: "gateway",
     frontStyle: "gateway-single-row",
-    rows: [[1, 2, 3, 4]],
-    portCount: 4,
+    rows: [[1, 2, 3, 4, 5]],
+    portCount: 5,
     displayModel: "Cloud Gateway Ultra",
     theme: "white",
     specialSlots: [{ key: "wan", label: "WAN" }]
@@ -139,6 +148,15 @@ var MODEL_REGISTRY = {
     displayModel: "Cloud Gateway Max",
     theme: "white",
     specialSlots: [{ key: "wan", label: "WAN" }]
+  },
+  UDMA6A8: {
+    kind: "gateway",
+    frontStyle: "gateway-single-row",
+    rows: [range(1, 7)],
+    portCount: 7,
+    displayModel: "Cloud Gateway Fiber",
+    theme: "white",
+    specialSlots: []
   },
   UDMPRO: {
     kind: "gateway",
@@ -189,7 +207,7 @@ var MODEL_REGISTRY = {
   // 7 PoE+ output ports on the front (ports 1–7), white enclosure.
   // Port 8 is on the rear: PoE++ input / uplink — exposed as a special slot.
   // Three SKUs share the same physical layout; only PoE budget differs.
-  USWULTRA: {
+  USM8P: {
     kind: "switch",
     frontStyle: "ultra-row",
     rows: [range(1, 7)],
@@ -197,25 +215,25 @@ var MODEL_REGISTRY = {
     displayModel: "USW Ultra",
     theme: "white",
     specialSlots: [{ key: "uplink", label: "Uplink" }]
-  },
-  USWULTRA60W: {
-    kind: "switch",
-    frontStyle: "ultra-row",
-    rows: [range(1, 7)],
-    portCount: 7,
-    displayModel: "USW Ultra 60W",
-    theme: "white",
-    specialSlots: [{ key: "uplink", label: "Uplink" }]
-  },
-  USWULTRA210W: {
-    kind: "switch",
-    frontStyle: "ultra-row",
-    rows: [range(1, 7)],
-    portCount: 7,
-    displayModel: "USW Ultra 210W",
-    theme: "white",
-    specialSlots: [{ key: "uplink", label: "Uplink" }]
   }
+  //  USWULTRA60W: {
+  //    kind: "switch",
+  //    frontStyle: "ultra-row",
+  //    rows: [range(1, 7)],
+  //    portCount: 7,
+  //    displayModel: "USW Ultra 60W",
+  //    theme: "white",
+  //    specialSlots: [{ key: "uplink", label: "Uplink" }],
+  //  },
+  //  USWULTRA210W: {
+  //    kind: "switch",
+  //    frontStyle: "ultra-row",
+  //    rows: [range(1, 7)],
+  //    portCount: 7,
+  //    displayModel: "USW Ultra 210W",
+  //    theme: "white",
+  //   specialSlots: [{ key: "uplink", label: "Uplink" }],
+  //  },
 };
 function resolveModelKey(device) {
   const candidates = [
@@ -350,8 +368,8 @@ function hasUbiquitiManufacturer(device) {
   const m = lower(device?.manufacturer);
   return m.includes("ubiquiti") || m.includes("unifi");
 }
-var SWITCH_MODEL_PREFIXES = ["USW", "USL", "US8", "USMINI", "FLEXMINI"];
-var GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UDRULT", "UDMPRO", "UDMSE"];
+var SWITCH_MODEL_PREFIXES = ["USW", "USL", "US8", "USMINI", "FLEXMINI", "USM8P", "USWED35"];
+var GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UDRULT", "UDMPRO", "UDMSE", "UDMA6A8"];
 var AP_MODEL_PREFIXES = ["UAP", "U6", "U7", "UAL", "UAPMESH"];
 function normalizeModelStr(value) {
   return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -1121,7 +1139,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.461f142";
+var VERSION = "0.0.0-dev.d4b2194";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
