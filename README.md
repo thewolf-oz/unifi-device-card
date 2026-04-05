@@ -8,6 +8,17 @@ No direct API access, no extra configuration. Just add the card and pick your de
 
 ---
 
+## Infos
+  
+  This Dashboard is based on my idea, but full created by ChatGPT and Claude.ai only tested wit the Unifi Devices i own
+  - UCG-U
+  - US 8 60W
+  - USW Lite 8 PoE
+  - USW Lite 16 PoE
+  - USW Flex
+
+  If someone sees improvements, issues and fixes, feel free to make an pull request
+
 ## Features
 
 - **Realistic front-panel view** — ports laid out exactly as on the physical device, dual-row for 16-port switches, quad-row for 48-port models
