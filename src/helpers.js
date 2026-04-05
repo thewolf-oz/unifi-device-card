@@ -335,12 +335,15 @@ function ensurePort(map, port) {
       key:               `port-${port}`,
       port,
       label:             String(port),
+      port_label:        null,   // custom label from UniFi console (via entity original_name)
       kind:              "numbered",
       link_entity:       null,
       speed_entity:      null,
       poe_switch_entity: null,
       poe_power_entity:  null,
       power_cycle_entity:null,
+      rx_entity:         null,   // sensor.*_port_N_rx — throughput receive
+      tx_entity:         null,   // sensor.*_port_N_tx — throughput transmit
       raw_entities:      [],
     });
   }
@@ -353,12 +356,15 @@ function ensureSpecialPort(map, key, label) {
       key,
       port:              null,
       label,
+      port_label:        null,
       kind:              "special",
       link_entity:       null,
       speed_entity:      null,
       poe_switch_entity: null,
       poe_power_entity:  null,
       power_cycle_entity:null,
+      rx_entity:         null,
+      tx_entity:         null,
       raw_entities:      [],
     });
   }
@@ -466,9 +472,13 @@ function classifyPortEntity(entity) {
     return "link_entity";
   }
 
-  // ── sensor: throughput (rx/tx) — must be checked BEFORE speed/link ────────
+  // ── sensor: throughput rx/tx — return dedicated type instead of ignoring ──
+  if (eid.startsWith("sensor.") && id.includes("_port_")) {
+    if (id.endsWith("_rx") || id.includes("_rx_")) return "rx_entity";
+    if (id.endsWith("_tx") || id.includes("_tx_")) return "tx_entity";
+  }
   if (eid.startsWith("sensor.") && isThroughputEntity(id)) {
-    return null; // explicitly ignore
+    return null; // ignore generic throughput not tied to a port
   }
 
   // ── sensor: speed — id contains _link_speed anywhere ─────────────────────
@@ -511,6 +521,35 @@ function detectSpecialPortKey(entity) {
   return null;
 }
 
+/**
+ * Extract a custom port label from entity original_name.
+ * The HA UniFi integration names speed sensors as "{port_label} link speed"
+ * e.g. "Macbook link speed" → port_label = "Macbook"
+ * and power cycle buttons as "{port_label} Power Cycle"
+ * We strip the known suffixes to get the label the user set in UniFi console.
+ */
+function extractPortLabel(entity) {
+  const name = normalize(entity.original_name || entity.name || "");
+  if (!name) return null;
+
+  // Strip known suffixes (case-insensitive)
+  const suffixes = [
+    / link speed$/i,
+    / poe power$/i,
+    / power cycle$/i,
+    / poe$/i,
+    / link$/i,
+  ];
+  for (const suffix of suffixes) {
+    const stripped = name.replace(suffix, "").trim();
+    // Only use it if what remains is not just "Port N"
+    if (stripped && !/^port\s+\d+$/i.test(stripped)) {
+      return stripped;
+    }
+  }
+  return null;
+}
+
 export function discoverPorts(entities) {
   const ports = new Map();
 
@@ -524,6 +563,12 @@ export function discoverPorts(entities) {
     const type = classifyPortEntity(entity);
     if (type && !row[type]) {
       row[type] = entity.entity_id;
+    }
+
+    // Extract custom port label from entity name if not yet found
+    if (!row.port_label) {
+      const label = extractPortLabel(entity);
+      if (label) row.port_label = label;
     }
   }
 
