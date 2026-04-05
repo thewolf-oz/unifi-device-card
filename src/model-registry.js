@@ -87,6 +87,16 @@ export const MODEL_REGISTRY = {
     specialSlots: [],
   },
 
+  USWED35: {
+    kind: "switch",
+    frontStyle: "single-row",
+    rows: [range(1, 5)],
+    portCount: 5,
+    displayModel: "USW Flex Mini 2.5G",
+    theme: "white",
+    specialSlots: [],
+  },
+
   USL8LP: {
     kind: "switch",
     frontStyle: "single-row",
