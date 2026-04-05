@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.90c6c5d */
+/* UniFi Device Card 0.0.0-dev.a763c2d */
 
 // src/model-registry.js
 function range(start, end) {
@@ -203,6 +203,15 @@ var MODEL_REGISTRY = {
     theme: "silver",
     specialSlots: []
   },
+  US48PRO: {
+    kind: "switch",
+    frontStyle: "quad-row",
+    rows: [range(1, 12), range(13, 24), range(25, 36), range(37, 48), range(49, 52)],
+    portCount: 52,
+    displayModel: "USW Pro 48 PoE",
+    theme: "silver",
+    specialSlots: []
+  },
   // ── USW Ultra family ─────────────────────────────────────────────────────
   // 7 PoE+ output ports on the front (ports 1–7), white enclosure.
   // Port 8 is on the rear: PoE++ input / uplink — exposed as a special slot.
@@ -210,8 +219,8 @@ var MODEL_REGISTRY = {
   USM8P: {
     kind: "switch",
     frontStyle: "ultra-row",
-    rows: [range(1, 7)],
-    portCount: 7,
+    rows: [range(1, 7), 8],
+    portCount: 8,
     displayModel: "USW Ultra",
     theme: "white",
     specialSlots: [{ key: "uplink", label: "Uplink" }]
@@ -368,9 +377,9 @@ function hasUbiquitiManufacturer(device) {
   const m = lower(device?.manufacturer);
   return m.includes("ubiquiti") || m.includes("unifi");
 }
-var SWITCH_MODEL_PREFIXES = ["USW", "USL", "US8", "USMINI", "FLEXMINI", "USM8P", "USWED35"];
-var GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UDRULT", "UDMPRO", "UDMSE", "UDMA6A8"];
-var AP_MODEL_PREFIXES = ["UAP", "U6", "U7", "UAL", "UAPMESH"];
+var SWITCH_MODEL_PREFIXES = ["USW", "USL", "US8", "USMINI", "FLEXMINI", "USM8P", "USWED35", "US48PRO"];
+var GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UDRULT", "UDMPRO", "UDMSE", "UDMA6A8", "UDR"];
+var AP_MODEL_PREFIXES = ["UAP", "U6", "U7", "UAL", "UAPMESH", "U7PRO", "U7LT"];
 function normalizeModelStr(value) {
   return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
@@ -385,7 +394,7 @@ function classifyDevice(device, entities) {
   if (isDefinitelyAP(device)) return "access_point";
   const modelKey = resolveModelKey(device);
   if (modelKey) {
-    if (["UDRULT", "UCGULTRA", "UCGMAX", "UDMPRO", "UDMSE"].includes(modelKey)) return "gateway";
+    if (["UDRULT", "UCGULTRA", "UCGMAX", "UDMPRO", "UDMSE", "UDMA6A8", "UDR"].includes(modelKey)) return "gateway";
     if ([
       "US8P60",
       "USMINI",
@@ -393,8 +402,12 @@ function classifyDevice(device, entities) {
       "USL8LPB",
       "USL16LP",
       "USL16LPB",
+      "USM8P",
+      "USWED35",
       "USW24P",
-      "USW48P"
+      "USW48P",
+      "US24PRO",
+      "US48PRO"
     ].includes(modelKey)) return "switch";
   }
   if (modelStartsWith(device, SWITCH_MODEL_PREFIXES)) return "switch";
@@ -404,8 +417,8 @@ function classifyDevice(device, entities) {
   if (hasUbiquitiManufacturer(device)) {
     const model = lower(device?.model);
     const name = lower(device?.name_by_user || device?.name);
-    if (model.includes("udm") || model.includes("ucg") || model.includes("uxg") || name.includes("gateway")) return "gateway";
-    if (model.includes("usw") || model.includes("usl") || model.includes("us8") || name.includes("switch")) return "switch";
+    if (model.includes("udm") || model.includes("ucg") || model.includes("uxg") || model.includes("udr") || name.includes("gateway")) return "gateway";
+    if (model.includes("usw") || model.includes("usl") || model.includes("us8") || model.includes("usm") || name.includes("switch")) return "switch";
   }
   return "unknown";
 }
@@ -1139,7 +1152,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.90c6c5d";
+var VERSION = "0.0.0-dev.a763c2d";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
