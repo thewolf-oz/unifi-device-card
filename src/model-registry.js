@@ -147,6 +147,16 @@ export const MODEL_REGISTRY = {
     specialSlots: [{ key: "wan", label: "WAN" }],
   },
 
+  UDR: {
+    kind: "gateway",
+    frontStyle: "gateway-single-row",
+    rows: [[1, 2, 3, 4]],
+    portCount: 4,
+    displayModel: "Dream Router",
+    theme: "white",
+    specialSlots: [{ key: "wan", label: "WAN" }],
+  },
+
   UCGULTRA: {
     kind: "gateway",
     frontStyle: "gateway-single-row",
