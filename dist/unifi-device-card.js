@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.0345cb4 */
+/* UniFi Device Card 0.0.0-dev.c9034d5 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -250,6 +250,15 @@ function isUnifiConfigEntry(entry) {
   const title = lower(entry?.title);
   return domain === "unifi" || domain === "unifi_network" || title.includes("unifi");
 }
+function extractUnifiEntryIds(configEntries) {
+  return new Set(
+    (configEntries || []).filter(isUnifiConfigEntry).map((entry) => entry.entry_id)
+  );
+}
+function hasUbiquitiManufacturer(device) {
+  const manufacturer = lower(device?.manufacturer);
+  return manufacturer.includes("ubiquiti") || manufacturer.includes("ubiquiti networks") || manufacturer.includes("unifi");
+}
 function isAccessPoint(device, entities) {
   const model = lower(device?.model);
   const name = lower(device?.name);
@@ -303,22 +312,13 @@ async function getAllData(hass) {
   }
   return { devices, entitiesByDevice, configEntries };
 }
-function extractUnifiEntryIds(configEntries) {
-  return new Set(
-    (configEntries || []).filter(isUnifiConfigEntry).map((entry) => entry.entry_id)
-  );
-}
-function hasUbiquitiManufacturer(device) {
-  const manufacturer = lower(device?.manufacturer);
-  return manufacturer.includes("ubiquiti") || manufacturer.includes("ubiquiti networks") || manufacturer.includes("unifi");
-}
 function isUnifiDevice(device, unifiEntryIds, entities, configEntries) {
   const byConfigEntry = Array.isArray(device?.config_entries) && device.config_entries.some((id) => unifiEntryIds.has(id));
   if (byConfigEntry) return true;
+  const hasAnyUnifiEntry = (configEntries || []).some(isUnifiConfigEntry);
   const byManufacturer = hasUbiquitiManufacturer(device);
   const text = deviceText(device, entities);
   const byStrongHint = text.includes("usw") || text.includes("usmini") || text.includes("usl8") || text.includes("usl16") || text.includes("us8") || text.includes("udm") || text.includes("ucg") || text.includes("uxg") || text.includes("cloud gateway") || text.includes("unifi");
-  const hasAnyUnifiEntry = (configEntries || []).some(isUnifiConfigEntry);
   if (!hasAnyUnifiEntry) {
     return byManufacturer && byStrongHint;
   }
@@ -385,11 +385,11 @@ function extractPortNumber(entity) {
   const id = entity.entity_id || "";
   const originalName = entity.original_name || "";
   const name = entity.name || "";
-  let match = id.match(/_port_(\d+)_/i);
+  let match = id.match(/_port_(\\d+)_/i);
   if (match) return Number(match[1]);
-  match = originalName.match(/\bport\s+(\d+)\b/i);
+  match = originalName.match(/\\bport\\s+(\\d+)\\b/i);
   if (match) return Number(match[1]);
-  match = name.match(/\bport\s+(\d+)\b/i);
+  match = name.match(/\\bport\\s+(\\d+)\\b/i);
   if (match) return Number(match[1]);
   return null;
 }
@@ -717,7 +717,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.0345cb4";
+var VERSION = "0.0.0-dev.c9034d5";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
