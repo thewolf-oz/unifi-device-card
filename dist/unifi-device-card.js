@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.ade855c */
+/* UniFi Device Card 0.0.0-dev.10559f8 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -241,7 +241,7 @@ var MODEL_REGISTRY = {
     portCount: 7,
     displayModel: "USW Ultra",
     theme: "white",
-    specialSlots: [{ key: "uplink", label: "Uplink" }]
+    specialSlots: [{ key: "port_8", label: "8" }]
   }
   //  USWULTRA60W: {
   //    kind: "switch",
@@ -1157,7 +1157,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.ade855c";
+var VERSION = "0.0.0-dev.10559f8";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
