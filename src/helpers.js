@@ -511,6 +511,15 @@ function detectSpecialPortKey(entity) {
   const text = entityText(entity);
   const id   = lower(entity.entity_id);
 
+  // Named WAN port used by USW Lite when uplinked to UCG-U
+  // e.g. switch.usw_lite_16_poe_abstellraum_ucg_u_wan_port
+  if (id.includes("ucg_u_wan_port") || id.includes("_ucg_u_wan"))
+    return { key: "wan", label: "WAN" };
+
+  // Generic named wan_port suffix (no port number in entity_id)
+  if (id.endsWith("_wan_port"))
+    return { key: "wan", label: "WAN" };
+
   if (text.includes("wan 2") || id.includes("wan2"))
     return { key: "wan2", label: "WAN 2" };
   if ((text.includes("wan") || id.includes("wan")) && (text.includes("sfp") || id.includes("sfp")))
@@ -602,13 +611,8 @@ export function discoverPorts(entities) {
     }
   }
 
-  // If a port has no power_cycle_entity, strip PoE fields
-  for (const row of ports.values()) {
-    if (!row.power_cycle_entity) {
-      row.poe_switch_entity = null;
-      row.poe_power_entity  = null;
-    }
-  }
+  // poe_switch_entity is kept even without power_cycle_entity.
+  // US 8 60W exposes switch.*_poe without power_cycle buttons.
 
   return Array.from(ports.values()).sort((a, b) => a.port - b.port);
 }
@@ -747,18 +751,11 @@ export function isOn(hass, entityId, port = null) {
     }
   }
 
-  // 3. Fallback: scan raw_entities for any link-like state value
-  for (const eid of port?.raw_entities || []) {
-    const id = lower(eid);
-    // Skip entities that are not link indicators
-    if (id.endsWith("_poe") || id.includes("_poe_power") ||
-        id.endsWith("_rx")  || id.endsWith("_tx") ||
-        id.includes("power_cycle")) continue;
-
-    const st = stateObj(hass, eid);
-    if (!st) continue;
-    const v = String(st.state).toLowerCase();
-    if (v === "on" || v === "connected" || v === "up" || v === "true") return true;
+  // 3. Fallback: port_switch_entity (admin port enable) — weak link indicator.
+  //    Only used when no speed_entity exists (e.g. offline ports, flex mini ports).
+  if (port?.port_switch_entity) {
+    const st = stateObj(hass, port.port_switch_entity);
+    if (st && String(st.state).toLowerCase() === "on") return true;
   }
 
   return false;
