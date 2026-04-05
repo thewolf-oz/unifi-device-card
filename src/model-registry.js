@@ -140,8 +140,8 @@ export const MODEL_REGISTRY = {
   UCGULTRA: {
     kind: "gateway",
     frontStyle: "gateway-single-row",
-    rows: [[1, 2, 3, 4]],
-    portCount: 4,
+    rows: [[1, 2, 3, 4, 5]],
+    portCount: 5,
     displayModel: "Cloud Gateway Ultra",
     theme: "white",
     specialSlots: [{ key: "wan", label: "WAN" }],
@@ -155,6 +155,16 @@ export const MODEL_REGISTRY = {
     displayModel: "Cloud Gateway Max",
     theme: "white",
     specialSlots: [{ key: "wan", label: "WAN" }],
+  },
+
+  UDMA6A8: {
+    kind: "gateway",
+    frontStyle: "gateway-single-row",
+    rows: rows: [range(1, 7)],
+    portCount: 7,
+    displayModel: "Cloud Gateway Fiber",
+    theme: "white",
+    specialSlots: [],
   },
 
   UDMPRO: {
@@ -210,7 +220,7 @@ export const MODEL_REGISTRY = {
   // 7 PoE+ output ports on the front (ports 1–7), white enclosure.
   // Port 8 is on the rear: PoE++ input / uplink — exposed as a special slot.
   // Three SKUs share the same physical layout; only PoE budget differs.
-  USWULTRA: {
+  USM8P: {
     kind: "switch",
     frontStyle: "ultra-row",
     rows: [range(1, 7)],
@@ -220,25 +230,25 @@ export const MODEL_REGISTRY = {
     specialSlots: [{ key: "uplink", label: "Uplink" }],
   },
 
-  USWULTRA60W: {
-    kind: "switch",
-    frontStyle: "ultra-row",
-    rows: [range(1, 7)],
-    portCount: 7,
-    displayModel: "USW Ultra 60W",
-    theme: "white",
-    specialSlots: [{ key: "uplink", label: "Uplink" }],
-  },
+//  USWULTRA60W: {
+//    kind: "switch",
+//    frontStyle: "ultra-row",
+//    rows: [range(1, 7)],
+//    portCount: 7,
+//    displayModel: "USW Ultra 60W",
+//    theme: "white",
+//    specialSlots: [{ key: "uplink", label: "Uplink" }],
+//  },
 
-  USWULTRA210W: {
-    kind: "switch",
-    frontStyle: "ultra-row",
-    rows: [range(1, 7)],
-    portCount: 7,
-    displayModel: "USW Ultra 210W",
-    theme: "white",
-    specialSlots: [{ key: "uplink", label: "Uplink" }],
-  },
+//  USWULTRA210W: {
+//    kind: "switch",
+//    frontStyle: "ultra-row",
+//    rows: [range(1, 7)],
+//    portCount: 7,
+//    displayModel: "USW Ultra 210W",
+//    theme: "white",
+//   specialSlots: [{ key: "uplink", label: "Uplink" }],
+//  },
 };
 
 // ─────────────────────────────────────────────────
