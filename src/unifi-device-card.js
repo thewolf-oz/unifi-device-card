@@ -158,12 +158,12 @@ class UnifiDeviceCard extends HTMLElement {
         .frontpanel {
           padding: 8px 16px 8px 16px;
           display: grid;
-          gap: 6px;
+          gap: 4px;
         }
 
         .port-row {
           display: grid;
-          gap: 6px;
+          gap: 4px;
         }
 
         .frontpanel.single-row .port-row,
@@ -189,15 +189,15 @@ class UnifiDeviceCard extends HTMLElement {
 
         .port {
           border: none;
-          border-radius: 10px;
-          min-height: 52px;
+          border-radius: 8px;
+          min-height: 40px;
           cursor: pointer;
           color: white;
           font: inherit;
           display: grid;
           place-items: center;
-          gap: 1px;
-          padding: 6px 2px;
+          gap: 0;
+          padding: 4px 2px;
           background: #555;
         }
 
@@ -211,22 +211,23 @@ class UnifiDeviceCard extends HTMLElement {
 
         .port.selected {
           outline: 2px solid var(--primary-color);
-          outline-offset: 2px;
+          outline-offset: 1px;
         }
 
         .port.has-poe {
-          box-shadow: inset 0 0 0 2px rgba(255, 193, 7, 0.55);
+          box-shadow: inset 0 0 0 1px rgba(255, 193, 7, 0.75);
         }
 
         .port-num {
-          font-size: 13px;
+          font-size: 11px;
           font-weight: 700;
           line-height: 1;
         }
 
         .port-icon {
-          font-size: 14px;
+          font-size: 11px;
           line-height: 1;
+          margin-top: 1px;
         }
 
         .section {
