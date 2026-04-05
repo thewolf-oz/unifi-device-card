@@ -1,5 +1,5 @@
 import { getUnifiDevices } from "./helpers.js";
-import { getApiClient, clearApiClient } from "./unifi-api.js";
+import { getApiClient, clearApiClient, CorsError } from "./unifi-api.js";
 
 class UnifiDeviceCardEditor extends HTMLElement {
   constructor() {
@@ -145,16 +145,17 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
     try {
       const client = getApiClient(effectiveConfig);
-      await client.login();
-      const sites  = await client.getSites();
-      this._apiSites  = Array.isArray(sites)
-        ? sites.map((s) => ({ name: s.name, desc: s.desc || s.name }))
-        : [];
+      const sites  = await client.testConnection();
+      this._apiSites  = sites.map((s) => ({ name: s.name, desc: s.desc || s.name }));
       this._apiResult = "ok";
     } catch (e) {
       console.error("[unifi-device-card] API test failed:", e);
       this._apiResult = "fail";
-      this._apiError  = e.message || "Verbindung fehlgeschlagen";
+      if (e.name === "CorsError") {
+        this._apiError = "cors";
+      } else {
+        this._apiError = e.message || "Verbindung fehlgeschlagen";
+      }
     }
 
     this._apiTesting = false;
@@ -187,7 +188,18 @@ class UnifiDeviceCardEditor extends HTMLElement {
         : "";
       testBadge = `<div class="api-badge ok">✅ Verbindung erfolgreich${sl}</div>`;
     } else if (this._apiResult === "fail") {
-      testBadge = `<div class="api-badge fail">❌ ${this._apiError}</div>`;
+      if (this._apiError === "cors") {
+        testBadge = `<div class="api-badge cors">
+          ⚠️ <strong>CORS-Fehler</strong> — Der Browser blockiert den direkten Zugriff auf die UCG/UDM.<br><br>
+          <strong>Ursache:</strong> HA und UCG laufen auf unterschiedlichen Origins (Host/Port/Protokoll).<br><br>
+          <strong>Lösungen:</strong><br>
+          • Reverse-Proxy (nginx, Caddy) der beide unter einer HTTPS-Domain zusammenführt<br>
+          • HA OS: Nginx Proxy Manager Addon einrichten<br>
+          • Ohne API: Die Card funktioniert vollständig über HA-Entities — kein API nötig.
+        </div>`;
+      } else {
+        testBadge = `<div class="api-badge fail">❌ ${this._apiError}</div>`;
+      }
     }
 
     // ── Auth fields depending on selected mode ────────────────────────────
@@ -279,6 +291,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
         .api-badge.testing { background: var(--secondary-background-color); border-color: var(--divider-color); }
         .api-badge.ok      { background: rgba(34,197,94,.1);  border-color: rgba(34,197,94,.3); color: #14532d; }
         .api-badge.fail    { background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.3); color: #991b1b; }
+        .api-badge.cors    { background: rgba(245,158,11,.08); border-color: rgba(245,158,11,.35); color: #78350f; font-size: 12px; line-height: 1.6; }
 
         /* ── Site inline hint ── */
         .site-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
