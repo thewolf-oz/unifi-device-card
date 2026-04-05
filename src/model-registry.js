@@ -266,7 +266,7 @@ export const MODEL_REGISTRY = {
     portCount: 7,
     displayModel: "USW Ultra",
     theme: "white",
-    specialSlots: [{ key: "uplink", label: "Uplink" }],
+    specialSlots: [{ key: "port_8", label: "8" }],
   },
 
 //  USWULTRA60W: {
