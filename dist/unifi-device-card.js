@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.6184a50 */
+/* UniFi Device Card 0.0.0-dev.f1df749 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -128,6 +128,15 @@ var MODEL_REGISTRY = {
     rows: [[1, 2, 3, 4]],
     portCount: 4,
     displayModel: "Cloud Gateway Ultra",
+    theme: "white",
+    specialSlots: [{ key: "wan", label: "WAN" }]
+  },
+  UDR: {
+    kind: "gateway",
+    frontStyle: "gateway-single-row",
+    rows: [[1, 2, 3, 4]],
+    portCount: 4,
+    displayModel: "Dream Router",
     theme: "white",
     specialSlots: [{ key: "wan", label: "WAN" }]
   },
@@ -1139,7 +1148,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.6184a50";
+var VERSION = "0.0.0-dev.f1df749";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
