@@ -77,9 +77,9 @@ function hasUbiquitiManufacturer(device) {
 // Whitelist of model-key prefixes that are definitely
 // switches or gateways (never APs, cameras, etc.)
 // ─────────────────────────────────────────────────
-const SWITCH_MODEL_PREFIXES  = ["USW", "USL", "US8", "USMINI", "FLEXMINI", "USM8P", "USWED35"];
-const GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UDRULT", "UDMPRO", "UDMSE", "UDMA6A8"];
-const AP_MODEL_PREFIXES      = ["UAP", "U6", "U7", "UAL", "UAPMESH"];
+const SWITCH_MODEL_PREFIXES  = ["USW", "USL", "US8", "USMINI", "FLEXMINI", "USM8P", "USWED35", "US48PRO"];
+const GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UDRULT", "UDMPRO", "UDMSE", "UDMA6A8", "UDR"];
+const AP_MODEL_PREFIXES      = ["UAP", "U6", "U7", "UAL", "UAPMESH","U7PRO","U7LT"];
 
 function normalizeModelStr(value) {
   return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -103,9 +103,9 @@ function classifyDevice(device, entities) {
   // 2. Known model key from registry (most reliable)
   const modelKey = resolveModelKey(device);
   if (modelKey) {
-    if (["UDRULT","UCGULTRA","UCGMAX","UDMPRO","UDMSE"].includes(modelKey)) return "gateway";
-    if (["US8P60","USMINI","USL8LP","USL8LPB","USL16LP","USL16LPB",
-         "USW24P","USW48P"].includes(modelKey)) return "switch";
+    if (["UDRULT","UCGULTRA","UCGMAX","UDMPRO","UDMSE","UDMA6A8","UDR"].includes(modelKey)) return "gateway";
+    if (["US8P60","USMINI","USL8LP","USL8LPB","USL16LP","USL16LPB","USM8P", "USWED35",
+         "USW24P","USW48P","US24PRO","US48PRO"].includes(modelKey)) return "switch";
   }
 
   // 3. Model prefix whitelist
@@ -121,9 +121,9 @@ function classifyDevice(device, entities) {
   if (hasUbiquitiManufacturer(device)) {
     const model    = lower(device?.model);
     const name     = lower(device?.name_by_user || device?.name);
-    if (model.includes("udm") || model.includes("ucg") || model.includes("uxg") ||
+    if (model.includes("udm") || model.includes("ucg") || model.includes("uxg") || model.includes("udr") ||
         name.includes("gateway")) return "gateway";
-    if (model.includes("usw") || model.includes("usl") || model.includes("us8") ||
+    if (model.includes("usw") || model.includes("usl") || model.includes("us8") ||model.includes("usm") ||
         name.includes("switch")) return "switch";
   }
 
