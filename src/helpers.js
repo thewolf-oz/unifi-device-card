@@ -372,6 +372,22 @@ function isLikelyLinkStateValue(value) {
   );
 }
 
+function isThroughputEntity(id, text) {
+  return (
+    id.includes("throughput") ||
+    id.includes("traffic") ||
+    id.includes("download") ||
+    id.includes("upload") ||
+    id.includes("_rx") ||
+    id.includes("_tx") ||
+    id.includes("bandwidth") ||
+    text.includes("throughput") ||
+    text.includes("download") ||
+    text.includes("upload") ||
+    text.includes("traffic")
+  );
+}
+
 function classifyPortEntity(entity) {
   const id = lower(entity.entity_id);
   const text = entityText(entity);
@@ -392,7 +408,8 @@ function classifyPortEntity(entity) {
 
   if (entity.entity_id.startsWith("sensor.")) {
     if (
-      (id.includes("_state") || id.includes("_status") || id.includes("_link")) &&
+      !isThroughputEntity(id, text) &&
+      (id.includes("_link") || id.includes("_port_status") || id.includes("_state") || id.includes("_status")) &&
       (text.includes("port") || text.includes("link") || text.includes("connected"))
     ) {
       return "link_entity";
@@ -401,12 +418,14 @@ function classifyPortEntity(entity) {
 
   if (
     entity.entity_id.startsWith("sensor.") &&
-    (id.includes("_speed") ||
+    !isThroughputEntity(id, text) &&
+    (
       id.includes("link_speed") ||
-      text.includes("speed") ||
-      text.includes("mbit/s") ||
-      text.includes("gbe") ||
-      text.includes("link speed"))
+      id.endsWith("_speed") ||
+      text.includes("link speed") ||
+      text.includes("ethernet speed") ||
+      text.includes("negotiated speed")
+    )
   ) {
     return "speed_entity";
   }
@@ -605,7 +624,16 @@ export function getPortLinkText(hass, port) {
     if (!st) continue;
 
     const value = String(st.state ?? "");
-    if (isLikelyLinkStateValue(value)) return value;
+    const id = lower(entityId);
+
+    if (
+      isLikelyLinkStateValue(value) &&
+      !id.includes("poe") &&
+      !id.includes("power") &&
+      !id.includes("speed")
+    ) {
+      return value;
+    }
   }
 
   return "—";
@@ -629,36 +657,42 @@ function simplifySpeed(value, unit = "") {
 
   if (raw.includes("10g")) return "10000 Mbit";
   if (raw.includes("2.5g")) return "2500 Mbit";
-  if (raw.includes("1g") || raw.includes("1000")) return "1000 Mbit";
-  if (raw.includes("100m") || raw === "100") return "100 Mbit";
-  if (raw.includes("10m") || raw === "10") return "10 Mbit";
+  if (raw.includes("1g")) return "1000 Mbit";
+  if (raw.includes("1000")) return "1000 Mbit";
+  if (raw.includes("100m")) return "100 Mbit";
+  if (raw === "100") return "100 Mbit";
+  if (raw.includes("10m")) return "10 Mbit";
+  if (raw === "10") return "10 Mbit";
 
-  return String(value);
+  return "—";
 }
 
 export function getPortSpeedText(hass, port) {
   const direct = stateObj(hass, port?.speed_entity);
   if (direct) {
-    return simplifySpeed(direct.state, direct.attributes?.unit_of_measurement);
+    const result = simplifySpeed(direct.state, direct.attributes?.unit_of_measurement);
+    if (result !== "—") return result;
   }
 
   for (const entityId of port?.raw_entities || []) {
     const st = stateObj(hass, entityId);
     if (!st) continue;
 
+    const id = lower(entityId);
     const text = lower(entityId);
     const unit = st.attributes?.unit_of_measurement || "";
     const value = String(st.state ?? "");
 
+    if (isThroughputEntity(id, text)) continue;
+
     if (
-      text.includes("speed") ||
-      text.includes("link_speed") ||
-      unit.toLowerCase().includes("mbit") ||
-      unit.toLowerCase().includes("gbit") ||
-      value.toLowerCase().includes("g") ||
-      value.toLowerCase().includes("mbit")
+      id.includes("link_speed") ||
+      id.endsWith("_speed") ||
+      id.includes("ethernet_speed") ||
+      id.includes("negotiated_speed")
     ) {
-      return simplifySpeed(value, unit);
+      const result = simplifySpeed(value, unit);
+      if (result !== "—") return result;
     }
   }
 
