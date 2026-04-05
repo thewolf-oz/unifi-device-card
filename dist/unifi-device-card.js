@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.c680fa5 */
+/* UniFi Device Card 0.0.0-dev.159f2d6 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -485,12 +485,18 @@ function ensurePort(map, port) {
       key: `port-${port}`,
       port,
       label: String(port),
+      port_label: null,
+      // custom label from UniFi console (via entity original_name)
       kind: "numbered",
       link_entity: null,
       speed_entity: null,
       poe_switch_entity: null,
       poe_power_entity: null,
       power_cycle_entity: null,
+      rx_entity: null,
+      // sensor.*_port_N_rx — throughput receive
+      tx_entity: null,
+      // sensor.*_port_N_tx — throughput transmit
       raw_entities: []
     });
   }
@@ -502,12 +508,15 @@ function ensureSpecialPort(map, key, label) {
       key,
       port: null,
       label,
+      port_label: null,
       kind: "special",
       link_entity: null,
       speed_entity: null,
       poe_switch_entity: null,
       poe_power_entity: null,
       power_cycle_entity: null,
+      rx_entity: null,
+      tx_entity: null,
       raw_entities: []
     });
   }
@@ -538,6 +547,10 @@ function classifyPortEntity(entity) {
   if (eid.startsWith("binary_sensor.") && id.includes("_port_")) {
     return "link_entity";
   }
+  if (eid.startsWith("sensor.") && id.includes("_port_")) {
+    if (id.endsWith("_rx") || id.includes("_rx_")) return "rx_entity";
+    if (id.endsWith("_tx") || id.includes("_tx_")) return "tx_entity";
+  }
   if (eid.startsWith("sensor.") && isThroughputEntity(id)) {
     return null;
   }
@@ -567,6 +580,24 @@ function detectSpecialPortKey(entity) {
     return { key: "sfp", label: "SFP" };
   return null;
 }
+function extractPortLabel(entity) {
+  const name = normalize(entity.original_name || entity.name || "");
+  if (!name) return null;
+  const suffixes = [
+    / link speed$/i,
+    / poe power$/i,
+    / power cycle$/i,
+    / poe$/i,
+    / link$/i
+  ];
+  for (const suffix of suffixes) {
+    const stripped = name.replace(suffix, "").trim();
+    if (stripped && !/^port\s+\d+$/i.test(stripped)) {
+      return stripped;
+    }
+  }
+  return null;
+}
 function discoverPorts(entities) {
   const ports = /* @__PURE__ */ new Map();
   for (const entity of entities || []) {
@@ -577,6 +608,10 @@ function discoverPorts(entities) {
     const type = classifyPortEntity(entity);
     if (type && !row[type]) {
       row[type] = entity.entity_id;
+    }
+    if (!row.port_label) {
+      const label = extractPortLabel(entity);
+      if (label) row.port_label = label;
     }
   }
   for (const row of ports.values()) {
@@ -883,7 +918,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.c680fa5";
+var VERSION = "0.0.0-dev.159f2d6";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
