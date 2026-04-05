@@ -226,6 +226,16 @@ export const MODEL_REGISTRY = {
     specialSlots: [],
   },
 
+  US48PRO: {
+    kind: "switch",
+    frontStyle: "quad-row",
+    rows: [range(1, 12), range(13, 24), range(25, 36), range(37, 48), range(49, 52)],
+    portCount: 52,
+    displayModel: "USW Pro 48 PoE",
+    theme: "silver",
+    specialSlots: [],
+  },
+
   // ── USW Ultra family ─────────────────────────────────────────────────────
   // 7 PoE+ output ports on the front (ports 1–7), white enclosure.
   // Port 8 is on the rear: PoE++ input / uplink — exposed as a special slot.
@@ -233,8 +243,8 @@ export const MODEL_REGISTRY = {
   USM8P: {
     kind: "switch",
     frontStyle: "ultra-row",
-    rows: [range(1, 7)],
-    portCount: 7,
+    rows: [range(1, 7), 8],
+    portCount: 8,
     displayModel: "USW Ultra",
     theme: "white",
     specialSlots: [{ key: "uplink", label: "Uplink" }],
