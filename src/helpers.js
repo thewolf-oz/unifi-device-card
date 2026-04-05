@@ -79,7 +79,7 @@ function hasUbiquitiManufacturer(device) {
 // ─────────────────────────────────────────────────
 const SWITCH_MODEL_PREFIXES  = ["USW", "USL", "US8", "USMINI", "FLEXMINI", "USM8P", "USWED35", "US48PRO"];
 const GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UDRULT", "UDMPRO", "UDMSE", "UDMA6A8", "UDR"];
-const AP_MODEL_PREFIXES      = ["UAP", "U6", "U7", "UAL", "UAPMESH","U7PRO","U7LT"];
+const AP_MODEL_PREFIXES      = ["UAP", "U6", "U7", "UAL", "UAPMESH", "U7PRO", "U7LT"];
 
 function normalizeModelStr(value) {
   return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -104,8 +104,7 @@ function classifyDevice(device, entities) {
   const modelKey = resolveModelKey(device);
   if (modelKey) {
     if (["UDRULT","UCGULTRA","UCGMAX","UDMPRO","UDMSE","UDMA6A8","UDR"].includes(modelKey)) return "gateway";
-    if (["US8P60","USMINI","USL8LP","USL8LPB","USL16LP","USL16LPB","USM8P", "USWED35",
-         "USW24P","USW48P","US24PRO","US48PRO"].includes(modelKey)) return "switch";
+    if (["US8P60","USMINI","USL8LP","USL8LPB","USL16LP","USL16LPB","USM8P","USWED35","USW24P","USW48P","US24PRO","US48PRO"].includes(modelKey)) return "switch";
   }
 
   // 3. Model prefix whitelist
