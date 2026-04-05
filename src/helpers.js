@@ -275,7 +275,7 @@ export async function getUnifiDevices(hass) {
     });
   }
 
-  return results.sort((a, b) => a.name.localeCompare(b.name, "de", { sensitivity: "base" }));
+  return results.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
 }
 
 export async function getDeviceContext(hass, deviceId) {
@@ -511,23 +511,26 @@ function detectSpecialPortKey(entity) {
   const text = entityText(entity);
   const id   = lower(entity.entity_id);
 
-  // Named WAN port used by USW Lite when uplinked to UCG-U
-  // e.g. switch.usw_lite_16_poe_abstellraum_ucg_u_wan_port
-  if (id.includes("ucg_u_wan_port") || id.includes("_ucg_u_wan"))
-    return { key: "wan", label: "WAN" };
-
-  // Generic named wan_port suffix (no port number in entity_id)
-  if (id.endsWith("_wan_port"))
-    return { key: "wan", label: "WAN" };
-
+  // ── WAN 2 ────────────────────────────────────────────────────────────────
   if (text.includes("wan 2") || id.includes("wan2"))
     return { key: "wan2", label: "WAN 2" };
+
+  // ── WAN SFP+ ─────────────────────────────────────────────────────────────
   if ((text.includes("wan") || id.includes("wan")) && (text.includes("sfp") || id.includes("sfp")))
     return { key: "sfp_wan", label: "WAN SFP+" };
+
+  // ── LAN SFP+ ─────────────────────────────────────────────────────────────
   if ((text.includes("lan") || id.includes("lan")) && (text.includes("sfp") || id.includes("sfp")))
     return { key: "sfp_lan", label: "LAN SFP+" };
-  if (text.includes("wan") || id.includes("wan"))
+
+  // ── WAN (any named WAN port without a numeric port index) ────────────────
+  // Covers: "wan_port" suffix, "wan" anywhere in id/text, named uplink ports
+  if (id.endsWith("_wan_port") || id.endsWith("_wan"))
     return { key: "wan", label: "WAN" };
+  if (text.includes("wan") || id.includes("_wan_"))
+    return { key: "wan", label: "WAN" };
+
+  // ── SFP ──────────────────────────────────────────────────────────────────
   if (text.includes("sfp+") || text.includes("sfp") || id.includes("sfp"))
     return { key: "sfp", label: "SFP" };
 
