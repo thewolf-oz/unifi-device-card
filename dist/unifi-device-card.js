@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.4c2842d */
+/* UniFi Device Card 0.0.0-dev.d04a6a9 */
 
 // src/unifi-device-card.js
 function range(start, end) {
