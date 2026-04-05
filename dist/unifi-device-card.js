@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.c0659a4 */
+/* UniFi Device Card 0.0.0-dev.81eccb6 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -236,12 +236,12 @@ var MODEL_REGISTRY = {
   // Three SKUs share the same physical layout; only PoE budget differs.
   USM8P: {
     kind: "switch",
-    frontStyle: "ultra-row",
-    rows: [range(1, 7)],
-    portCount: 7,
+    frontStyle: "single-row",
+    rows: [range(1, 8)],
+    portCount: 8,
     displayModel: "USW Ultra",
     theme: "white",
-    specialSlots: [{ key: "port_8", label: "8" }]
+    specialSlots: []
   }
   //  USWULTRA60W: {
   //    kind: "switch",
@@ -1157,7 +1157,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.c0659a4";
+var VERSION = "0.0.0-dev.81eccb6";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
