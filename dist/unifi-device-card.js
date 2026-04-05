@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.65c8a91 */
+/* UniFi Device Card 0.0.0-dev.32bc8a3 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -161,11 +161,15 @@ var MODEL_REGISTRY = {
   UDMA6A8: {
     kind: "gateway",
     frontStyle: "gateway-single-row",
-    rows: [range(1, 7)],
-    portCount: 7,
+    rows: [range(1, 4)],
+    portCount: 4,
     displayModel: "Cloud Gateway Fiber",
     theme: "white",
-    specialSlots: []
+    specialSlots: [
+      { key: "wan", label: "WAN" },
+      { key: "sfp_wan", label: "WAN SFP+" },
+      { key: "sfp_lan", label: "LAN SFP+" }
+    ]
   },
   UDMPRO: {
     kind: "gateway",
@@ -233,8 +237,8 @@ var MODEL_REGISTRY = {
   USM8P: {
     kind: "switch",
     frontStyle: "ultra-row",
-    rows: [range(1, 7), 8],
-    portCount: 8,
+    rows: [range(1, 7)],
+    portCount: 7,
     displayModel: "USW Ultra",
     theme: "white",
     specialSlots: [{ key: "uplink", label: "Uplink" }]
@@ -1153,7 +1157,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.65c8a91";
+var VERSION = "0.0.0-dev.32bc8a3";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
