@@ -261,12 +261,12 @@ export const MODEL_REGISTRY = {
   // Three SKUs share the same physical layout; only PoE budget differs.
   USM8P: {
     kind: "switch",
-    frontStyle: "ultra-row",
-    rows: [range(1, 7)],
-    portCount: 7,
+    frontStyle: "single-row",
+    rows: [range(1, 8)],
+    portCount: 8,
     displayModel: "USW Ultra",
     theme: "white",
-    specialSlots: [{ key: "port_8", label: "8" }],
+    specialSlots: [],
   },
 
 //  USWULTRA60W: {
