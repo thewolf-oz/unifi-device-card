@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.f2f75e1 */
+/* UniFi Device Card 0.0.0-dev.ce536cf */
 
 // src/model-registry.js
 function range(start, end) {
@@ -528,6 +528,10 @@ function classifyPortEntity(entity) {
 function detectSpecialPortKey(entity) {
   const text = entityText(entity);
   const id = lower(entity.entity_id);
+  if (id.includes("ucg_u_wan_port") || id.includes("_ucg_u_wan"))
+    return { key: "wan", label: "WAN" };
+  if (id.endsWith("_wan_port"))
+    return { key: "wan", label: "WAN" };
   if (text.includes("wan 2") || id.includes("wan2"))
     return { key: "wan2", label: "WAN 2" };
   if ((text.includes("wan") || id.includes("wan")) && (text.includes("sfp") || id.includes("sfp")))
@@ -579,12 +583,6 @@ function discoverPorts(entities) {
     if (!row.port_label) {
       const label = extractPortLabel(entity);
       if (label) row.port_label = label;
-    }
-  }
-  for (const row of ports.values()) {
-    if (!row.power_cycle_entity) {
-      row.poe_switch_entity = null;
-      row.poe_power_entity = null;
     }
   }
   return Array.from(ports.values()).sort((a, b) => a.port - b.port);
@@ -674,13 +672,9 @@ function isOn(hass, entityId, port = null) {
       if (!isNaN(num) && num > 0) return true;
     }
   }
-  for (const eid of port?.raw_entities || []) {
-    const id = lower(eid);
-    if (id.endsWith("_poe") || id.includes("_poe_power") || id.endsWith("_rx") || id.endsWith("_tx") || id.includes("power_cycle")) continue;
-    const st = stateObj(hass, eid);
-    if (!st) continue;
-    const v = String(st.state).toLowerCase();
-    if (v === "on" || v === "connected" || v === "up" || v === "true") return true;
+  if (port?.port_switch_entity) {
+    const st = stateObj(hass, port.port_switch_entity);
+    if (st && String(st.state).toLowerCase() === "on") return true;
   }
   return false;
 }
@@ -759,7 +753,7 @@ function getPortSpeedText(hass, port) {
 }
 
 // src/unifi-device-card-editor.js
-var VERSION = "0.0.0-dev.f2f75e1";
+var VERSION = "0.0.0-dev.ce536cf";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
@@ -1294,7 +1288,7 @@ window.customCards.push({
 });
 
 // src/unifi-device-card.js
-var VERSION2 = "0.0.0-dev.f2f75e1";
+var VERSION2 = "0.0.0-dev.ce536cf";
 var UnifiDeviceCard2 = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
