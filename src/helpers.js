@@ -523,16 +523,30 @@ function detectSpecialPortKey(entity) {
 
 /**
  * Extract a custom port label from entity original_name.
- * The HA UniFi integration names speed sensors as "{port_label} link speed"
- * e.g. "Macbook link speed" → port_label = "Macbook"
- * and power cycle buttons as "{port_label} Power Cycle"
- * We strip the known suffixes to get the label the user set in UniFi console.
+ *
+ * The HA UniFi integration names entities as:
+ *   "{port_label} link speed"      → sensor
+ *   "{port_label} Power Cycle"     → button
+ *   "{port_label} PoE Power"       → sensor
+ *   "{port_label} PoE"             → switch
+ *
+ * Where {port_label} is the name the user assigned to the port
+ * in the UniFi Network console. If the port has no custom name,
+ * {port_label} defaults to "Port N".
+ *
+ * We strip both the known suffixes AND the leading "Port N" prefix
+ * so that only the user-defined part remains.
+ *
+ * Example:
+ *   "Port 1 - Uplink (Internet Switch) Power Cycle"
+ *   → strip " Power Cycle" → "Port 1 - Uplink (Internet Switch)"
+ *   → strip leading "Port N - " → "Uplink (Internet Switch)"
  */
 function extractPortLabel(entity) {
   const name = normalize(entity.original_name || entity.name || "");
   if (!name) return null;
 
-  // Strip known suffixes (case-insensitive)
+  // Step 1: strip known entity-type suffixes
   const suffixes = [
     / link speed$/i,
     / poe power$/i,
@@ -540,13 +554,22 @@ function extractPortLabel(entity) {
     / poe$/i,
     / link$/i,
   ];
+
+  let stripped = name;
   for (const suffix of suffixes) {
-    const stripped = name.replace(suffix, "").trim();
-    // Only use it if what remains is not just "Port N"
-    if (stripped && !/^port\s+\d+$/i.test(stripped)) {
-      return stripped;
+    const candidate = name.replace(suffix, "").trim();
+    if (candidate.length < name.length) {
+      stripped = candidate;
+      break;
     }
   }
+
+  // Step 2: strip leading "Port N" or "Port N - " prefix
+  // (the default label when no custom name is set in UniFi console)
+  stripped = stripped.replace(/^port\s+\d+\s*[-–]?\s*/i, "").trim();
+
+  // Return only if something meaningful remains
+  if (stripped && stripped.length > 0) return stripped;
   return null;
 }
 
@@ -677,31 +700,53 @@ export function stateValue(hass, entityId, fallback = "—") {
 // an active port with no dedicated binary_sensor.
 // Also added "active" as a valid "on" state.
 // ─────────────────────────────────────────────────
-export function isOn(hass, entityId) {
+/**
+ * isOn — determine if a port has an active link.
+ *
+ * Checks the given entityId state first. If the entity is missing or
+ * unavailable, falls back to checking the port's speed_entity:
+ * a positive speed value (e.g. "1000") reliably indicates a live link.
+ *
+ * This resolves the case where a port has no link_entity (entity disabled
+ * or not yet created by HA) but does have a speed_entity — the card was
+ * showing OFFLINE while simultaneously showing "1000 Mbit" because isOn()
+ * and getPortLinkText() used different fallback logic.
+ */
+export function isOn(hass, entityId, port = null) {
   const state = stateObj(hass, entityId);
-  if (!state) return false;
 
-  const value = String(state.state).toLowerCase();
-  if (
-    value === "on"        ||
-    value === "connected" ||
-    value === "up"        ||
-    value === "true"      ||
-    value === "active"    ||
-    value === "1"
-  ) return true;
-
-  // Numeric speed value > 0 means port is up
-  const num = parseFloat(value);
-  if (!isNaN(num) && num > 0) {
-    // Only treat as link-state if the entity looks like a link/status entity
-    const id = lower(entityId);
+  if (state) {
+    const value = String(state.state).toLowerCase();
     if (
-      id.includes("_link")   ||
-      id.includes("_status") ||
-      id.includes("_state")  ||
-      id.includes("_port_status")
+      value === "on"        ||
+      value === "connected" ||
+      value === "up"        ||
+      value === "true"      ||
+      value === "active"    ||
+      value === "1"
     ) return true;
+
+    // Numeric speed > 0 on a link/status-named entity = port up
+    const num = parseFloat(value);
+    if (!isNaN(num) && num > 0) {
+      const id = lower(entityId);
+      if (
+        id.includes("_link")        ||
+        id.includes("_status")      ||
+        id.includes("_state")       ||
+        id.includes("_port_status")
+      ) return true;
+    }
+  }
+
+  // Fallback: if port has a speed_entity with a positive value → link is up.
+  // Covers the case where link_entity is null/disabled but speed_entity exists.
+  if (port?.speed_entity) {
+    const speedState = stateObj(hass, port.speed_entity);
+    if (speedState) {
+      const num = parseFloat(speedState.state);
+      if (!isNaN(num) && num > 0) return true;
+    }
   }
 
   return false;
