@@ -333,6 +333,23 @@ class UnifiDeviceCard extends HTMLElement {
         padding: 24px 18px; color: var(--udc-muted);
         font-size: .875rem; text-align: center; line-height: 1.5;
       }
+
+      .port-custom-label { font-weight: 400; color: var(--udc-dim); font-size: .82rem; }
+
+      .tput-row { display: flex; gap: 6px; margin-bottom: 10px; }
+      .tput-chip {
+        display: inline-flex; align-items: center; gap: 4px;
+        background: var(--udc-surf2); border: 1px solid var(--udc-border);
+        border-radius: 6px; padding: 3px 8px;
+        font-size: .7rem; font-weight: 600; color: var(--udc-dim);
+      }
+      .tput-chip .arr { font-size: 8px; opacity: .6; }
+
+      .hint-disabled {
+        font-size: .72rem; color: var(--udc-muted);
+        padding: 6px 10px; border-radius: 6px; margin-bottom: 10px;
+        background: var(--udc-surf2); border: 1px solid var(--udc-border);
+      }
     </style>`;
   }
 
@@ -408,16 +425,41 @@ class UnifiDeviceCard extends HTMLElement {
     // Detail panel
     let detail = `<div class="muted">Keine Ports erkannt.</div>`;
     if (selected) {
-      const linkUp   = isOn(this._hass, selected.link_entity);
-      const linkText = getPortLinkText(this._hass, selected);
+      const linkUp    = isOn(this._hass, selected.link_entity);
+      const linkText  = getPortLinkText(this._hass, selected);
       const speedText = getPortSpeedText(this._hass, selected);
-      const poeAvail = Boolean(selected.power_cycle_entity && selected.poe_switch_entity);
-      const poeOn    = poeAvail ? isOn(this._hass, selected.poe_switch_entity) : false;
-      const poePower = poeAvail ? formatState(this._hass, selected.poe_power_entity, "—") : "—";
+      const poeAvail  = Boolean(selected.power_cycle_entity && selected.poe_switch_entity);
+      const poeOn     = poeAvail ? isOn(this._hass, selected.poe_switch_entity) : false;
+      const poePower  = poeAvail ? formatState(this._hass, selected.poe_power_entity, "—") : "—";
+
+      // RX / TX throughput from port entities
+      const rxVal = selected.rx_entity ? formatState(this._hass, selected.rx_entity, null) : null;
+      const txVal = selected.tx_entity ? formatState(this._hass, selected.tx_entity, null) : null;
+
+      // Port label from UniFi console (e.g. "Macbook", "Drucker")
+      const portLabel = selected.port_label || null;
+
+      // Title: "Port 4" or "Port 4 — Macbook" if a label is set
+      const portTitle = selected.kind === "special"
+        ? selected.label
+        : portLabel
+          ? `Port ${selected.port} <span class="port-custom-label">— ${portLabel}</span>`
+          : `Port ${selected.port}`;
+
+      // Hint when speed entity exists but is disabled (returns null state)
+      const speedDisabledHint = !speedText || speedText === "—"
+        ? (selected.speed_entity ? `<div class="hint-disabled">Speed-Entity deaktiviert — in HA aktivieren für Geschwindigkeitsanzeige</div>` : "")
+        : "";
+
+      const tputHtml = (rxVal || txVal) ? `
+        <div class="tput-row">
+          ${rxVal ? `<div class="tput-chip"><span class="arr">↓</span>${rxVal}</div>` : ""}
+          ${txVal ? `<div class="tput-chip"><span class="arr">↑</span>${txVal}</div>` : ""}
+        </div>` : "";
 
       detail = `
         <div class="detail-header">
-          <div class="detail-title">${selected.kind === "special" ? selected.label : `Port ${selected.port}`}</div>
+          <div class="detail-title">${portTitle}</div>
           <div class="status-badge ${linkUp ? "up" : "down"}">${linkUp ? "● Online" : "○ Offline"}</div>
         </div>
 
@@ -441,6 +483,9 @@ class UnifiDeviceCard extends HTMLElement {
             <div class="dc-value ${poeAvail ? "" : "na"}">${poePower}</div>
           </div>
         </div>
+
+        ${tputHtml}
+        ${speedDisabledHint}
 
         <div class="actions">
           ${poeAvail
