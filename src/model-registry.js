@@ -170,7 +170,7 @@ export const MODEL_REGISTRY = {
   UDMA6A8: {
     kind: "gateway",
     frontStyle: "gateway-single-row",
-    rows: rows: [range(1, 7)],
+    rows: [range(1, 7)],
     portCount: 7,
     displayModel: "Cloud Gateway Fiber",
     theme: "white",
