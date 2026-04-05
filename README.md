@@ -63,7 +63,7 @@ Unknown models are auto-detected by port count and fall back to a generic dark t
 1. Open **HACS** → **Frontend**
 2. Click **⋮** → **Custom repositories**
 3. Add:
-   - **Repository:** `https://github.com/YOUR_USERNAME/unifi-device-card`
+   - **Repository:** `https://github.com/bluenazgul/unifi-device-card`
    - **Category:** `Dashboard`
 4. Click **Add**, search for **UniFi Device Card** and install
 5. Reload the browser (Ctrl+Shift+R)
