@@ -1,30 +1,30 @@
-name: Release
+name: Create Release
 
 on:
-  release:
-    types:
-      - published
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version, e.g. v0.0.6"
+        required: true
+        type: string
 
 permissions:
   contents: write
 
 jobs:
-  build-and-attach:
+  create-release:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout release tag
+      - name: Checkout default branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.release.tag_name || github.ref_name }}
           fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
       - name: Install dependencies
         run: |
@@ -34,15 +34,28 @@ jobs:
             npm install
           fi
 
-      - name: Build dist
+      - name: Build dist for release
         run: npm run build
         env:
           GITHUB_EVENT_NAME: release
-          GITHUB_REF_NAME: ${{ github.event.release.tag_name || github.ref_name }}
+          GITHUB_REF_NAME: ${{ inputs.version }}
 
-      - name: Upload built JS to release
-        if: github.event_name == 'release'
+      - name: Commit dist if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dist/unifi-device-card.js package-lock.json
+          git diff --cached --quiet || git commit -m "release: prepare ${{ inputs.version }}"
+          git push
+
+      - name: Create Git tag
+        run: |
+          git tag -a "${{ inputs.version }}" -m "${{ inputs.version }}"
+          git push origin "${{ inputs.version }}"
+
+      - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.release.tag_name }}
+          tag_name: ${{ inputs.version }}
           files: dist/unifi-device-card.js
+          generate_release_notes: true
