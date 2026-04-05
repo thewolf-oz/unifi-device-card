@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.d65ad22 */
+/* UniFi Device Card 0.0.0-dev.0cb8c0a */
 
 // src/model-registry.js
 function range(start, end) {
@@ -561,6 +561,30 @@ function mergePortsWithLayout(layout, discoveredPorts) {
   }
   return merged.sort((a, b) => (a.port ?? 999) - (b.port ?? 999));
 }
+function mergeSpecialsWithLayout(layout, discoveredSpecials) {
+  const byKey = new Map(discoveredSpecials.map((s) => [s.key, s]));
+  const layoutSpecials = layout?.specialSlots || [];
+  const merged = layoutSpecials.map((slot) => {
+    return byKey.get(slot.key) || {
+      key: slot.key,
+      port: null,
+      label: slot.label,
+      kind: "special",
+      link_entity: null,
+      speed_entity: null,
+      poe_switch_entity: null,
+      poe_power_entity: null,
+      power_cycle_entity: null,
+      raw_entities: []
+    };
+  });
+  for (const special of discoveredSpecials) {
+    if (!layoutSpecials.some((s) => s.key === special.key)) {
+      merged.push(special);
+    }
+  }
+  return merged;
+}
 function stateObj(hass, entityId) {
   return entityId ? hass.states[entityId] || null : null;
 }
@@ -813,7 +837,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.d65ad22";
+var VERSION = "0.0.0-dev.0cb8c0a";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
@@ -826,7 +850,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     this.attachShadow({ mode: "open" });
     this._config = {};
     this._deviceContext = null;
-    this._selectedPort = null;
+    this._selectedKey = null;
     this._loading = false;
     this._loadToken = 0;
     this._loadedDeviceId = null;
@@ -838,7 +862,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     this._config = newConfig;
     if (oldDeviceId !== newDeviceId) {
       this._deviceContext = null;
-      this._selectedPort = null;
+      this._selectedKey = null;
       this._loadedDeviceId = null;
       this._loading = false;
       if (this._hass && newDeviceId) {
@@ -869,9 +893,16 @@ var UnifiDeviceCard = class extends HTMLElement {
       if (token !== this._loadToken) return;
       this._deviceContext = ctx;
       this._loadedDeviceId = currentId;
-      const discoveredPorts = discoverPorts(ctx?.entities || []);
-      const mergedPorts = mergePortsWithLayout(ctx?.layout, discoveredPorts);
-      this._selectedPort = mergedPorts.length ? mergedPorts[0].port : null;
+      const numberedPorts = mergePortsWithLayout(
+        ctx?.layout,
+        discoverPorts(ctx?.entities || [])
+      );
+      const specialPorts = mergeSpecialsWithLayout(
+        ctx?.layout,
+        discoverSpecialPorts(ctx?.entities || [])
+      );
+      const first = specialPorts[0] || numberedPorts[0] || null;
+      this._selectedKey = first?.key || null;
     } catch (err) {
       console.error("[unifi-device-card] Failed to load device context", err);
       if (token !== this._loadToken) return;
@@ -881,8 +912,8 @@ var UnifiDeviceCard = class extends HTMLElement {
     this._loading = false;
     this._render();
   }
-  _selectPort(port) {
-    this._selectedPort = port;
+  _selectKey(key) {
+    this._selectedKey = key;
     this._render();
   }
   async _toggleEntity(entityId) {
@@ -938,6 +969,7 @@ var UnifiDeviceCard = class extends HTMLElement {
           gap: 4px;
         }
 
+        .special-row,
         .port-row {
           display: grid;
           gap: 4px;
@@ -962,6 +994,11 @@ var UnifiDeviceCard = class extends HTMLElement {
 
         .frontpanel.quad-row .port-row {
           grid-template-columns: repeat(12, minmax(0, 1fr));
+        }
+
+        .special-row {
+          grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+          margin-bottom: 2px;
         }
 
         .port {
@@ -993,6 +1030,11 @@ var UnifiDeviceCard = class extends HTMLElement {
 
         .port.has-poe {
           box-shadow: inset 0 0 0 1px rgba(255, 193, 7, 0.75);
+        }
+
+        .port.special {
+          min-height: 44px;
+          border-radius: 10px;
         }
 
         .port-num {
@@ -1083,30 +1125,41 @@ var UnifiDeviceCard = class extends HTMLElement {
       ${this._styles()}
     `;
   }
-  _renderPortButton(port, selectedPort) {
-    const linkUp = isOn(this._hass, port.link_entity);
-    const hasPoe = Boolean(port.power_cycle_entity);
-    const poeOn = hasPoe && port.poe_switch_entity ? isOn(this._hass, port.poe_switch_entity) : false;
+  _renderPortButton(slot, selectedKey) {
+    const linkUp = isOn(this._hass, slot.link_entity);
+    const hasPoe = Boolean(slot.power_cycle_entity);
+    const poeOn = hasPoe && slot.poe_switch_entity ? isOn(this._hass, slot.poe_switch_entity) : false;
     return `
       <button
-        class="port ${linkUp ? "up" : "down"} ${selectedPort?.port === port.port ? "selected" : ""} ${hasPoe ? "has-poe" : ""}"
-        data-port="${port.port}"
-        title="Port ${port.port}"
+        class="port ${slot.kind === "special" ? "special" : ""} ${linkUp ? "up" : "down"} ${selectedKey === slot.key ? "selected" : ""} ${hasPoe ? "has-poe" : ""}"
+        data-key="${slot.key}"
+        title="${slot.label}"
       >
-        <div class="port-num">${port.port}</div>
+        <div class="port-num">${slot.label}</div>
         <div class="port-icon">${poeOn ? "\u26A1" : "\u21C4"}</div>
       </button>
     `;
   }
   _renderPanelAndDetail(title) {
     const ctx = this._deviceContext;
-    const discoveredPorts = discoverPorts(ctx?.entities || []);
-    const ports = mergePortsWithLayout(ctx?.layout, discoveredPorts);
-    const selected = ports.find((p) => p.port === this._selectedPort) || ports[0] || null;
+    const numberedPorts = mergePortsWithLayout(
+      ctx?.layout,
+      discoverPorts(ctx?.entities || [])
+    );
+    const specialPorts = mergeSpecialsWithLayout(
+      ctx?.layout,
+      discoverSpecialPorts(ctx?.entities || [])
+    );
+    const allSlots = [...specialPorts, ...numberedPorts];
+    const selected = allSlots.find((p) => p.key === this._selectedKey) || allSlots[0] || null;
+    const specialRow = specialPorts.length ? `<div class="special-row">${specialPorts.map((slot) => this._renderPortButton(slot, selected?.key)).join("")}</div>` : "";
     const layoutRows = (ctx?.layout?.rows || []).map((rowPorts) => {
       const rowItems = rowPorts.map((portNumber) => {
-        const port = ports.find((p) => p.port === portNumber) || {
+        const slot = numberedPorts.find((p) => p.port === portNumber) || {
+          key: `port-${portNumber}`,
           port: portNumber,
+          label: String(portNumber),
+          kind: "numbered",
           link_entity: null,
           speed_entity: null,
           poe_switch_entity: null,
@@ -1114,20 +1167,13 @@ var UnifiDeviceCard = class extends HTMLElement {
           power_cycle_entity: null,
           raw_entities: []
         };
-        return this._renderPortButton(port, selected);
+        return this._renderPortButton(slot, selected?.key);
       }).join("");
       return `<div class="port-row">${rowItems}</div>`;
     });
-    const layoutPorts = (ctx?.layout?.rows || []).flat();
-    const extraPorts = ports.filter((p) => !layoutPorts.includes(p.port));
-    if (extraPorts.length) {
-      layoutRows.push(
-        `<div class="port-row">${extraPorts.map((port) => this._renderPortButton(port, selected)).join("")}</div>`
-      );
-    }
     const detail = selected ? `
         <div class="port-detail">
-          <div class="detail-title">Port ${selected.port}</div>
+          <div class="detail-title">${selected.kind === "special" ? selected.label : `Port ${selected.port}`}</div>
 
           <div class="detail-grid">
             <div class="row">
@@ -1165,6 +1211,7 @@ var UnifiDeviceCard = class extends HTMLElement {
           <div class="subtitle">${this._subtitle()}</div>
         </div>
         <div class="frontpanel ${ctx?.layout?.frontStyle || "single-row"}">
+          ${specialRow}
           ${layoutRows.join("") || `<div class="content muted">Keine Ports erkannt.</div>`}
         </div>
         <div class="section">
@@ -1176,7 +1223,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     `;
     this.shadowRoot.querySelectorAll(".port").forEach((btn) => {
       btn.addEventListener("click", () => {
-        this._selectPort(Number(btn.dataset.port));
+        this._selectKey(btn.dataset.key);
       });
     });
     this.shadowRoot.querySelectorAll("[data-action='toggle-poe']").forEach((btn) => {
