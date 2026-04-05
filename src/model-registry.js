@@ -73,6 +73,7 @@ export const MODEL_REGISTRY = {
     rows: [range(1, 8)],
     portCount: 8,
     displayModel: "US 8 60W",
+    theme: "silver",
     specialSlots: [],
   },
 
@@ -82,6 +83,7 @@ export const MODEL_REGISTRY = {
     rows: [range(1, 5)],
     portCount: 5,
     displayModel: "USW Flex Mini",
+    theme: "white",
     specialSlots: [],
   },
 
@@ -91,6 +93,7 @@ export const MODEL_REGISTRY = {
     rows: [range(1, 8)],
     portCount: 8,
     displayModel: "USW Lite 8 PoE",
+    theme: "white",
     specialSlots: [],
   },
 
@@ -100,6 +103,7 @@ export const MODEL_REGISTRY = {
     rows: [range(1, 8)],
     portCount: 8,
     displayModel: "USW Lite 8 PoE",
+    theme: "white",
     specialSlots: [],
   },
 
@@ -109,6 +113,7 @@ export const MODEL_REGISTRY = {
     rows: [oddRange(1, 16), evenRange(1, 16)],
     portCount: 16,
     displayModel: "USW Lite 16 PoE",
+    theme: "white",
     specialSlots: [],
   },
 
@@ -118,6 +123,7 @@ export const MODEL_REGISTRY = {
     rows: [oddRange(1, 16), evenRange(1, 16)],
     portCount: 16,
     displayModel: "USW Lite 16 PoE",
+    theme: "white",
     specialSlots: [],
   },
 
@@ -127,6 +133,7 @@ export const MODEL_REGISTRY = {
     rows: [[1, 2, 3, 4]],
     portCount: 4,
     displayModel: "Cloud Gateway Ultra",
+    theme: "white",
     specialSlots: [{ key: "wan", label: "WAN" }],
   },
 
@@ -136,6 +143,7 @@ export const MODEL_REGISTRY = {
     rows: [[1, 2, 3, 4]],
     portCount: 4,
     displayModel: "Cloud Gateway Ultra",
+    theme: "white",
     specialSlots: [{ key: "wan", label: "WAN" }],
   },
 
@@ -145,6 +153,7 @@ export const MODEL_REGISTRY = {
     rows: [[1, 2, 3, 4, 5]],
     portCount: 5,
     displayModel: "Cloud Gateway Max",
+    theme: "white",
     specialSlots: [{ key: "wan", label: "WAN" }],
   },
 
@@ -154,6 +163,7 @@ export const MODEL_REGISTRY = {
     rows: [range(1, 8)],
     portCount: 8,
     displayModel: "UDM Pro",
+    theme: "silver",
     specialSlots: [
       { key: "wan",     label: "WAN"     },
       { key: "sfp_wan", label: "WAN SFP+"},
@@ -167,6 +177,7 @@ export const MODEL_REGISTRY = {
     rows: [range(1, 8)],
     portCount: 8,
     displayModel: "UDM SE",
+    theme: "silver",
     specialSlots: [
       { key: "wan",     label: "WAN"     },
       { key: "sfp_wan", label: "WAN SFP+"},
@@ -181,6 +192,7 @@ export const MODEL_REGISTRY = {
     rows: [range(1, 12), range(13, 24)],
     portCount: 24,
     displayModel: "USW 24 PoE",
+    theme: "silver",
     specialSlots: [],
   },
 
@@ -190,6 +202,7 @@ export const MODEL_REGISTRY = {
     rows: [range(1, 12), range(13, 24), range(25, 36), range(37, 48)],
     portCount: 48,
     displayModel: "USW 48 PoE",
+    theme: "silver",
     specialSlots: [],
   },
 };
