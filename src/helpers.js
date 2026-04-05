@@ -77,8 +77,8 @@ function hasUbiquitiManufacturer(device) {
 // Whitelist of model-key prefixes that are definitely
 // switches or gateways (never APs, cameras, etc.)
 // ─────────────────────────────────────────────────
-const SWITCH_MODEL_PREFIXES  = ["USW", "USL", "US8", "USMINI", "FLEXMINI"];
-const GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UDRULT", "UDMPRO", "UDMSE"];
+const SWITCH_MODEL_PREFIXES  = ["USW", "USL", "US8", "USMINI", "FLEXMINI", "USM8P", "USWED35"];
+const GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UDRULT", "UDMPRO", "UDMSE", "UDMA6A8"];
 const AP_MODEL_PREFIXES      = ["UAP", "U6", "U7", "UAL", "UAPMESH"];
 
 function normalizeModelStr(value) {
