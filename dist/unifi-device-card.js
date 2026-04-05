@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.ce7e18b */
+/* UniFi Device Card 0.0.0-dev.a964aaa */
 
 // src/model-registry.js
 function range(start, end) {
@@ -463,6 +463,9 @@ function isLikelyLinkStateValue(value) {
   const v = String(value ?? "").toLowerCase();
   return v === "on" || v === "off" || v === "up" || v === "down" || v === "connected" || v === "disconnected" || v === "true" || v === "false";
 }
+function isThroughputEntity(id, text) {
+  return id.includes("throughput") || id.includes("traffic") || id.includes("download") || id.includes("upload") || id.includes("_rx") || id.includes("_tx") || id.includes("bandwidth") || text.includes("throughput") || text.includes("download") || text.includes("upload") || text.includes("traffic");
+}
 function classifyPortEntity(entity) {
   const id = lower(entity.entity_id);
   const text = entityText(entity);
@@ -472,11 +475,11 @@ function classifyPortEntity(entity) {
     }
   }
   if (entity.entity_id.startsWith("sensor.")) {
-    if ((id.includes("_state") || id.includes("_status") || id.includes("_link")) && (text.includes("port") || text.includes("link") || text.includes("connected"))) {
+    if (!isThroughputEntity(id, text) && (id.includes("_link") || id.includes("_port_status") || id.includes("_state") || id.includes("_status")) && (text.includes("port") || text.includes("link") || text.includes("connected"))) {
       return "link_entity";
     }
   }
-  if (entity.entity_id.startsWith("sensor.") && (id.includes("_speed") || id.includes("link_speed") || text.includes("speed") || text.includes("mbit/s") || text.includes("gbe") || text.includes("link speed"))) {
+  if (entity.entity_id.startsWith("sensor.") && !isThroughputEntity(id, text) && (id.includes("link_speed") || id.endsWith("_speed") || text.includes("link speed") || text.includes("ethernet speed") || text.includes("negotiated speed"))) {
     return "speed_entity";
   }
   if (entity.entity_id.startsWith("switch.") && (id.includes("_poe") || text.includes("poe"))) {
@@ -620,7 +623,10 @@ function getPortLinkText(hass, port) {
     const st = stateObj(hass, entityId);
     if (!st) continue;
     const value = String(st.state ?? "");
-    if (isLikelyLinkStateValue(value)) return value;
+    const id = lower(entityId);
+    if (isLikelyLinkStateValue(value) && !id.includes("poe") && !id.includes("power") && !id.includes("speed")) {
+      return value;
+    }
   }
   return "\u2014";
 }
@@ -638,24 +644,31 @@ function simplifySpeed(value, unit = "") {
   }
   if (raw.includes("10g")) return "10000 Mbit";
   if (raw.includes("2.5g")) return "2500 Mbit";
-  if (raw.includes("1g") || raw.includes("1000")) return "1000 Mbit";
-  if (raw.includes("100m") || raw === "100") return "100 Mbit";
-  if (raw.includes("10m") || raw === "10") return "10 Mbit";
-  return String(value);
+  if (raw.includes("1g")) return "1000 Mbit";
+  if (raw.includes("1000")) return "1000 Mbit";
+  if (raw.includes("100m")) return "100 Mbit";
+  if (raw === "100") return "100 Mbit";
+  if (raw.includes("10m")) return "10 Mbit";
+  if (raw === "10") return "10 Mbit";
+  return "\u2014";
 }
 function getPortSpeedText(hass, port) {
   const direct = stateObj(hass, port?.speed_entity);
   if (direct) {
-    return simplifySpeed(direct.state, direct.attributes?.unit_of_measurement);
+    const result = simplifySpeed(direct.state, direct.attributes?.unit_of_measurement);
+    if (result !== "\u2014") return result;
   }
   for (const entityId of port?.raw_entities || []) {
     const st = stateObj(hass, entityId);
     if (!st) continue;
+    const id = lower(entityId);
     const text = lower(entityId);
     const unit = st.attributes?.unit_of_measurement || "";
     const value = String(st.state ?? "");
-    if (text.includes("speed") || text.includes("link_speed") || unit.toLowerCase().includes("mbit") || unit.toLowerCase().includes("gbit") || value.toLowerCase().includes("g") || value.toLowerCase().includes("mbit")) {
-      return simplifySpeed(value, unit);
+    if (isThroughputEntity(id, text)) continue;
+    if (id.includes("link_speed") || id.endsWith("_speed") || id.includes("ethernet_speed") || id.includes("negotiated_speed")) {
+      const result = simplifySpeed(value, unit);
+      if (result !== "\u2014") return result;
     }
   }
   return "\u2014";
@@ -842,7 +855,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.ce7e18b";
+var VERSION = "0.0.0-dev.a964aaa";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
