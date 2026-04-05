@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.31fc860 */
+/* UniFi Device Card 0.0.0-dev.4fe33a6 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -125,11 +125,11 @@ var MODEL_REGISTRY = {
   UDRULT: {
     kind: "gateway",
     frontStyle: "gateway-single-row",
-    rows: [[1, 2, 3, 4]],
-    portCount: 4,
+    rows: [range(1, 5)],
+    portCount: 5,
     displayModel: "Cloud Gateway Ultra",
     theme: "white",
-    specialSlots: [{ key: "wan", label: "WAN" }]
+    specialSlots: []
   },
   UDR: {
     kind: "gateway",
@@ -283,6 +283,7 @@ function resolveModelKey(device) {
     if (candidate.includes("USMINI")) return "USMINI";
     if (candidate.includes("FLEXMINI")) return "USMINI";
     if (candidate.includes("USWFLEXMINI")) return "USMINI";
+    if (candidate.includes("USWED35")) return "USWED35";
     if (candidate.includes("UDRULT")) return "UDRULT";
     if (candidate.includes("UCGULTRA")) return "UCGULTRA";
     if (candidate.includes("CLOUDGATEWAYULTRA")) return "UCGULTRA";
@@ -299,8 +300,10 @@ function resolveModelKey(device) {
     if (candidate.includes("SWITCHULTRA210")) return "USWULTRA210W";
     if (candidate.includes("SWITCHULTRA60")) return "USWULTRA60W";
     if (candidate.includes("SWITCHULTRA")) return "USWULTRA";
+    if (candidate.includes("USM8P")) return "USM8P";
     if (candidate.includes("USW24")) return "USW24P";
     if (candidate.includes("USW48")) return "USW48P";
+    if (candidate.includes("US48PRO")) return "US48PRO";
   }
   return null;
 }
@@ -324,10 +327,13 @@ function inferPortCountFromModel(device) {
   if (text.includes("FLEXMINI")) return 5;
   if (text.includes("UCGULTRA")) return 4;
   if (text.includes("CLOUDGATEWAYULTRA")) return 4;
+  if (text.includes("UDRULT")) return 5;
   if (text.includes("UCGMAX")) return 5;
   if (text.includes("UDMPRO")) return 8;
   if (text.includes("UDMSE")) return 8;
+  if (text.includes("UDMA6A8")) return 7;
   if (text.includes("USWULTRA")) return 7;
+  if (text.includes("48PRO")) return 52;
   if (text.includes("48")) return 48;
   if (text.includes("24")) return 24;
   return null;
@@ -1153,7 +1159,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.31fc860";
+var VERSION = "0.0.0-dev.4fe33a6";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
