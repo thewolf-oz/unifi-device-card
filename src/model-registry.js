@@ -180,11 +180,15 @@ export const MODEL_REGISTRY = {
   UDMA6A8: {
     kind: "gateway",
     frontStyle: "gateway-single-row",
-    rows: [range(1, 7)],
-    portCount: 7,
+    rows: [range(1, 4)],
+    portCount: 4,
     displayModel: "Cloud Gateway Fiber",
     theme: "white",
-    specialSlots: [],
+    specialSlots: [
+      { key: "wan",     label: "WAN"     },
+      { key: "sfp_wan", label: "WAN SFP+"},
+      { key: "sfp_lan", label: "LAN SFP+"},
+    ],
   },
 
   UDMPRO: {
@@ -258,8 +262,8 @@ export const MODEL_REGISTRY = {
   USM8P: {
     kind: "switch",
     frontStyle: "ultra-row",
-    rows: [range(1, 7), 8],
-    portCount: 8,
+    rows: [range(1, 7)],
+    portCount: 7,
     displayModel: "USW Ultra",
     theme: "white",
     specialSlots: [{ key: "uplink", label: "Uplink" }],
