@@ -140,11 +140,11 @@ export const MODEL_REGISTRY = {
   UDRULT: {
     kind: "gateway",
     frontStyle: "gateway-single-row",
-    rows: [[1, 2, 3, 4]],
-    portCount: 4,
+    rows: [range(1, 5)],
+    portCount: 5,
     displayModel: "Cloud Gateway Ultra",
     theme: "white",
-    specialSlots: [{ key: "wan", label: "WAN" }],
+    specialSlots: [],
   },
 
   UDR: {
@@ -336,9 +336,10 @@ export function resolveModelKey(device) {
     if (candidate.includes("US860W"))  return "US8P60";
 
     // Flex Mini
-    if (candidate.includes("USMINI"))    return "USMINI";
-    if (candidate.includes("FLEXMINI"))  return "USMINI";
+    if (candidate.includes("USMINI"))      return "USMINI";
+    if (candidate.includes("FLEXMINI"))    return "USMINI";
     if (candidate.includes("USWFLEXMINI")) return "USMINI";
+    if (candidate.includes("USWED35"))     return "USWED35";
 
     // Gateways
     if (candidate.includes("UDRULT"))          return "UDRULT";
@@ -359,10 +360,12 @@ export function resolveModelKey(device) {
     if (candidate.includes("SWITCHULTRA210")) return "USWULTRA210W";
     if (candidate.includes("SWITCHULTRA60"))  return "USWULTRA60W";
     if (candidate.includes("SWITCHULTRA"))    return "USWULTRA";
+    if (candidate.includes("USM8P"))          return  "USM8P",
 
     // 24/48 port switches
-    if (candidate.includes("USW24"))  return "USW24P";
-    if (candidate.includes("USW48"))  return "USW48P";
+    if (candidate.includes("USW24"))    return "USW24P";
+    if (candidate.includes("USW48"))    return "USW48P";
+    if (candidate.includes("US48PRO"))  return "US48PRO";
   }
 
   return null;
@@ -392,12 +395,14 @@ export function inferPortCountFromModel(device) {
 
   if (text.includes("UCGULTRA"))     return 4;
   if (text.includes("CLOUDGATEWAYULTRA")) return 4;
+  if (text.includes("UDRULT"))       return 5;
   if (text.includes("UCGMAX"))       return 5;
   if (text.includes("UDMPRO"))       return 8;
   if (text.includes("UDMSE"))        return 8;
+  if (text.includes("UDMA6A8"))        return 7;
 
   if (text.includes("USWULTRA")) return 7;
-
+  if (text.includes("48PRO"))  return 52;
   if (text.includes("48")) return 48;
   if (text.includes("24")) return 24;
 
