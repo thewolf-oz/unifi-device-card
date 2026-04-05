@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.a763c2d */
+/* UniFi Device Card 0.0.0-dev.19b7a1b */
 
 // src/model-registry.js
 function range(start, end) {
@@ -395,20 +395,7 @@ function classifyDevice(device, entities) {
   const modelKey = resolveModelKey(device);
   if (modelKey) {
     if (["UDRULT", "UCGULTRA", "UCGMAX", "UDMPRO", "UDMSE", "UDMA6A8", "UDR"].includes(modelKey)) return "gateway";
-    if ([
-      "US8P60",
-      "USMINI",
-      "USL8LP",
-      "USL8LPB",
-      "USL16LP",
-      "USL16LPB",
-      "USM8P",
-      "USWED35",
-      "USW24P",
-      "USW48P",
-      "US24PRO",
-      "US48PRO"
-    ].includes(modelKey)) return "switch";
+    if (["US8P60", "USMINI", "USL8LP", "USL8LPB", "USL16LP", "USL16LPB", "USM8P", "USWED35", "USW24P", "USW48P", "US24PRO", "US48PRO"].includes(modelKey)) return "switch";
   }
   if (modelStartsWith(device, SWITCH_MODEL_PREFIXES)) return "switch";
   if (modelStartsWith(device, GATEWAY_MODEL_PREFIXES)) return "gateway";
@@ -1152,7 +1139,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.a763c2d";
+var VERSION = "0.0.0-dev.19b7a1b";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
