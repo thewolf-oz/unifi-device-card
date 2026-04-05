@@ -51,7 +51,26 @@ function isUnifiConfigEntry(entry) {
   const domain = lower(entry?.domain);
   const title = lower(entry?.title);
 
-  return domain === "unifi" || domain === "unifi_network" || title.includes("unifi");
+  return (
+    domain === "unifi" ||
+    domain === "unifi_network" ||
+    title.includes("unifi")
+  );
+}
+
+function extractUnifiEntryIds(configEntries) {
+  return new Set(
+    (configEntries || []).filter(isUnifiConfigEntry).map((entry) => entry.entry_id)
+  );
+}
+
+function hasUbiquitiManufacturer(device) {
+  const manufacturer = lower(device?.manufacturer);
+  return (
+    manufacturer.includes("ubiquiti") ||
+    manufacturer.includes("ubiquiti networks") ||
+    manufacturer.includes("unifi")
+  );
 }
 
 function isAccessPoint(device, entities) {
@@ -84,6 +103,7 @@ function classifyDevice(device, entities) {
   if (isAccessPoint(device, entities)) return "access_point";
 
   const modelKey = resolveModelKey(device);
+
   if (
     modelKey === "UDRULT" ||
     modelKey === "UCGULTRA" ||
@@ -169,27 +189,14 @@ async function getAllData(hass) {
   return { devices, entitiesByDevice, configEntries };
 }
 
-function extractUnifiEntryIds(configEntries) {
-  return new Set(
-    (configEntries || []).filter(isUnifiConfigEntry).map((entry) => entry.entry_id)
-  );
-}
-
-function hasUbiquitiManufacturer(device) {
-  const manufacturer = lower(device?.manufacturer);
-  return (
-    manufacturer.includes("ubiquiti") ||
-    manufacturer.includes("ubiquiti networks") ||
-    manufacturer.includes("unifi")
-  );
-}
-
 function isUnifiDevice(device, unifiEntryIds, entities, configEntries) {
   const byConfigEntry =
     Array.isArray(device?.config_entries) &&
     device.config_entries.some((id) => unifiEntryIds.has(id));
 
   if (byConfigEntry) return true;
+
+  const hasAnyUnifiEntry = (configEntries || []).some(isUnifiConfigEntry);
 
   const byManufacturer = hasUbiquitiManufacturer(device);
   const text = deviceText(device, entities);
@@ -205,8 +212,6 @@ function isUnifiDevice(device, unifiEntryIds, entities, configEntries) {
     text.includes("uxg") ||
     text.includes("cloud gateway") ||
     text.includes("unifi");
-
-  const hasAnyUnifiEntry = (configEntries || []).some(isUnifiConfigEntry);
 
   if (!hasAnyUnifiEntry) {
     return byManufacturer && byStrongHint;
@@ -307,13 +312,13 @@ function extractPortNumber(entity) {
   const originalName = entity.original_name || "";
   const name = entity.name || "";
 
-  let match = id.match(/_port_(\d+)_/i);
+  let match = id.match(/_port_(\\d+)_/i);
   if (match) return Number(match[1]);
 
-  match = originalName.match(/\bport\s+(\d+)\b/i);
+  match = originalName.match(/\\bport\\s+(\\d+)\\b/i);
   if (match) return Number(match[1]);
 
-  match = name.match(/\bport\s+(\d+)\b/i);
+  match = name.match(/\\bport\\s+(\\d+)\\b/i);
   if (match) return Number(match[1]);
 
   return null;
