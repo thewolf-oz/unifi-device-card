@@ -360,7 +360,7 @@ export function resolveModelKey(device) {
     if (candidate.includes("SWITCHULTRA210")) return "USWULTRA210W";
     if (candidate.includes("SWITCHULTRA60"))  return "USWULTRA60W";
     if (candidate.includes("SWITCHULTRA"))    return "USWULTRA";
-    if (candidate.includes("USM8P"))          return  "USM8P",
+    if (candidate.includes("USM8P"))          return  "USM8P";
 
     // 24/48 port switches
     if (candidate.includes("USW24"))    return "USW24P";
