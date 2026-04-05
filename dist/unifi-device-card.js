@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.e17f5c7 */
+/* UniFi Device Card 0.0.0-dev.7048c07 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -134,20 +134,20 @@ var MODEL_REGISTRY = {
   UDR: {
     kind: "gateway",
     frontStyle: "gateway-single-row",
-    rows: [[1, 2, 3, 4]],
-    portCount: 4,
+    rows: [range(1, 5)],
+    portCount: 5,
     displayModel: "Dream Router",
     theme: "white",
-    specialSlots: [{ key: "wan", label: "WAN" }]
+    specialSlots: []
   },
   UCGULTRA: {
     kind: "gateway",
     frontStyle: "gateway-single-row",
-    rows: [[1, 2, 3, 4, 5]],
+    rows: [range(1, 5)],
     portCount: 5,
     displayModel: "Cloud Gateway Ultra",
     theme: "white",
-    specialSlots: [{ key: "wan", label: "WAN" }]
+    specialSlots: []
   },
   UCGMAX: {
     kind: "gateway",
@@ -161,15 +161,11 @@ var MODEL_REGISTRY = {
   UDMA6A8: {
     kind: "gateway",
     frontStyle: "gateway-single-row",
-    rows: [range(1, 4)],
-    portCount: 4,
+    rows: [range(1, 5)],
+    portCount: 7,
     displayModel: "Cloud Gateway Fiber",
     theme: "white",
-    specialSlots: [
-      { key: "wan", label: "WAN" },
-      { key: "sfp_wan", label: "WAN SFP+" },
-      { key: "sfp_lan", label: "LAN SFP+" }
-    ]
+    specialSlots: []
   },
   UDMPRO: {
     kind: "gateway",
@@ -219,15 +215,15 @@ var MODEL_REGISTRY = {
   US48PRO: {
     kind: "switch",
     frontStyle: "quad-row",
-    rows: [range(1, 12), range(13, 24), range(25, 36), range(37, 48)],
+    rows: [oddRange(1, 24), evenRange(1, 24), oddRange(25, 48), evenRange(25, 48)],
     portCount: 48,
     displayModel: "USW Pro 48 PoE",
     theme: "silver",
     specialSlots: [
-      { key: "sfp_1", label: "SFP+ 1" },
-      { key: "sfp_2", label: "SFP+ 2" },
-      { key: "sfp_3", label: "SFP+ 3" },
-      { key: "sfp_4", label: "SFP+ 4" }
+      { key: "sfp+", label: "SFP+ 1" },
+      { key: "sfp+", label: "SFP+ 2" },
+      { key: "sfp+", label: "SFP+ 3" },
+      { key: "sfp+", label: "SFP+ 4" }
     ]
   },
   // ── USW Ultra family ─────────────────────────────────────────────────────
@@ -1157,7 +1153,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.e17f5c7";
+var VERSION = "0.0.0-dev.7048c07";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
