@@ -1,5 +1,13 @@
 # Changelog
 
+## [v0.2.5] - 2026-04-06
+
+### 🐛 Bug Fixes
+
+- **should fix WAN Port isues** if not i could need help here
+
+- **maybe Theme fixing** if not i could need help here
+
 ## [v0.2.3] - 2026-04-06
 
 ### 🐛 Bug Fixes
