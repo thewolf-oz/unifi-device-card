@@ -1,50 +1,36 @@
 # Changelog
 
-##[v0.2.1] — 2026-04-06
+## [v0.2.1] - 2026-04-06
 
-🐛 Bug Fixes
-Port link detection via PoE power and RX/TX traffic (helpers.js — isOn, getPortLinkText)
-Two edge cases were not covered by the v0.2.0 speed-entity fallback:
+### 🐛 Bug Fixes
 
-A port powering a PoE device (e.g. a U6 Mesh AP drawing 6.62 W) reported "Kein Link" because the link entity was missing and the speed entity returned 0. PoE power draw > 0 W now counts as a definitive link signal.
-A port showing active RX/TX throughput was shown as OFFLINE. Active throughput > 0 Mbit/s now counts as a link signal.
+- **Port link detection via PoE power and RX/TX traffic** — Ports without a usable link entity or speed sensor fallback could still be shown as offline even though they were actively powering a PoE device or carrying traffic. Link detection now also treats `poe_power > 0` and active RX/TX throughput as valid link signals.
 
-Both isOn() and getPortLinkText() follow the same five-stage chain: link_entity → speed > 0 → PoE power > 0 → RX/TX > 0 → admin port enable.
+- **False online state on WAN/SFP special ports** — Special WAN/SFP slots could report a false online state from negotiated speed alone, even when no real traffic was present. If RX/TX traffic entities are available, live traffic is now used as the decisive signal for these ports.
 
-SFP/WAN ports reporting false "online" (helpers.js — isOn, getPortLinkText)
-A seated SFP+ module without a cable can report non-zero negotiated speed. For special slots that have RX/TX traffic entities, the speed check is now skipped — only live traffic counts as a confirmed link. (Issue #2 — Bug 4)
+- **Disabled entities no longer create broken controls** — Home Assistant can expose entities disabled by the integration that have no live state in `hass.states`. These are now filtered out before rendering so missing or non-functional port/PoE buttons are no longer shown.
 
-Port and PoE buttons missing or non-functional (helpers.js — getAllData, unifi-device-card.js)
-HA creates entities with disabled_by: "integration" for features not active by default. These have no state in hass.states — the card rendered buttons that silently failed. getAllData() now filters to active-only entities. The card additionally guards each button with a stateObj() check before rendering.
+- **WAN/SFP slots on UDM Pro and UDM SE** — Special WAN/SFP slots were not correctly resolved to their underlying discovered ports and therefore appeared empty or offline. Special slots now resolve by real port number and are excluded from the normal numbered grid to prevent duplicate rendering.
 
-WAN and SFP slots always empty/offline on UDMPRO and UDMSE (model-registry.js, helpers.js — mergeSpecialsWithLayout)
-specialSlots had no port numbers, so mergeSpecialsWithLayout() could never match them to discovered port data. (Issue #2 — Bug 3, Issue #3)
+- **Renamed port entities now resolve correctly** — Renamed port entities without `_port_N` in the `entity_id` could no longer be mapped back to a physical port. Missing `unique_id` values are now fetched on demand and used as an additional fallback for port number extraction.
 
-UDMPRO and UDMSE now declare port numbers on special slots (WAN = 9, SFP+ 1 = 10, SFP+ 2 = 11).
-mergeSpecialsWithLayout() now accepts discoveredPorts as third argument and does port-number lookup first.
-mergePortsWithLayout() now excludes ports claimed by specialSlots to prevent double-rendering.
+- **RX/TX throughput formatting** — Numeric throughput values are now rounded to two decimal places for cleaner display.
 
+---
 
-Missing model definitions for US 16 PoE 150W and USW Pro 24 (model-registry.js)
-Both devices fell through to auto-infer with wrong layouts. (Issue #2 — Bug 1, Issue #3)
+### ✨ New Devices
 
-Added US16P150: dual-row (2x8), SFP slots on ports 17/18.
-Added US24PRO2: six-grid (4x6), SFP+ slots on ports 25/26.
-Updated USW24P from dual-row (2x12) to six-grid (4x6).
-Extended resolveModelKey() and inferPortCountFromModel() with new patterns.
+- **US 16 PoE 150W (`US16P150`)** — Added dedicated model handling with a dual-row layout and SFP uplink slots.
 
+- **USW Pro 24 (`US24PRO2`)** — Added dedicated model handling with a six-grid layout and SFP+ uplink slots.
 
-Renamed port entities showing no telemetry (helpers.js — getDeviceContext, extractPortNumber)
-config/entity_registry/list does not return unique_id since HA 2022.6. Renamed port entities have no _port_N in entity_id, so extractPortNumber() failed silently. (Issue #2 — Bug 2)
-getDeviceContext() now fetches the full registry entry for affected entities via config/entity_registry/get to retrieve unique_id. Only entities that need enrichment are fetched individually. extractPortNumber() also now parses port number from unique_id as fallback.
+---
 
-RX/TX throughput showing 17 decimal places (helpers.js — formatState)
-formatState() now rounds numeric values to 2 decimal places (integers shown without decimal point). (Issue #3)
+### 🎨 UI / Visual Changes
 
-Changed
+- **USW 24 PoE layout** — Updated from `dual-row` (2 × 12) to `six-grid` (4 × 6) for a more accurate front panel representation.
 
-mergeSpecialsWithLayout() now accepts optional discoveredPorts as third argument (backwards compatible).
-Action required in unifi-device-card.js: pass discoverPorts(ctx?.entities || []) as third argument to mergeSpecialsWithLayout() so WAN/SFP port-number lookup works.
+- **Optional card background color** — The outer card background now defaults to the Home Assistant card background and can optionally be overridden via `background_color` in the card configuration/editor.
 
 ---
 
