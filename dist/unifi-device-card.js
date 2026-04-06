@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.0103c02 */
+/* UniFi Device Card 0.0.0-dev.b7e61bd */
 
 // src/model-registry.js
 function range(start, end) {
@@ -1340,7 +1340,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.0103c02";
+var VERSION = "0.0.0-dev.b7e61bd";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
@@ -1385,6 +1385,17 @@ var UnifiDeviceCard = class extends HTMLElement {
   }
   _t(key) {
     return t(this._hass, key);
+  }
+  /**
+   * Translate a raw HA state value (e.g. "on", "connected", "up") to a
+   * localised string. Falls back to the original value if not recognised,
+   * so sensor readings / firmware strings are passed through unchanged.
+   */
+  _translateState(raw) {
+    if (!raw || raw === "\u2014") return raw;
+    const key = `state_${String(raw).toLowerCase().replace(/\s+/g, "_")}`;
+    const translated = this._t(key);
+    return translated === key ? raw : translated;
   }
   _cardBgStyle() {
     return this._config?.background_color || "var(--card-background-color)";
@@ -2000,7 +2011,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       const rxVal = selected.rx_entity ? formatState(this._hass, selected.rx_entity, null) : null;
       const txVal = selected.tx_entity ? formatState(this._hass, selected.tx_entity, null) : null;
       const portLabel = selected.port_label || null;
-      const portTitle = selected.kind === "special" ? portLabel ? `${selected.label} <span class="port-custom-label">\u2014 ${portLabel}</span>` : selected.label : portLabel ? `Port ${selected.port} <span class="port-custom-label">\u2014 ${portLabel}</span>` : `Port ${selected.port}`;
+      const portTitle = selected.kind === "special" ? portLabel ? `${selected.label} <span class="port-custom-label">\u2014 ${portLabel}</span>` : selected.label : portLabel ? `${this._t("port_label")} ${selected.port} <span class="port-custom-label">\u2014 ${portLabel}</span>` : `${this._t("port_label")} ${selected.port}`;
       const speedDisabledHint = (!speedText || speedText === "\u2014") && selected.speed_entity ? `<div class="hint-disabled">${this._t("speed_disabled")}</div>` : "";
       const tputHtml = rxVal || txVal ? `<div class="tput-row">
             ${rxVal ? `<div class="tput-chip"><span class="arr">\u2193</span>${rxVal}</div>` : ""}
@@ -2015,7 +2026,7 @@ var UnifiDeviceCard = class extends HTMLElement {
         <div class="detail-grid">
           <div class="detail-card">
             <div class="dc-label">${this._t("link_status")}</div>
-            <div class="dc-value">${linkText !== "\u2014" ? linkText : linkUp ? this._t("connected") : this._t("no_link")}</div>
+            <div class="dc-value">${linkText !== "\u2014" ? this._translateState(linkText) : linkUp ? this._t("connected") : this._t("no_link")}</div>
           </div>
           <div class="detail-card">
             <div class="dc-label">${this._t("speed")}</div>
@@ -2023,7 +2034,7 @@ var UnifiDeviceCard = class extends HTMLElement {
           </div>
           <div class="detail-card">
             <div class="dc-label">${this._t("poe")}</div>
-            <div class="dc-value ${hasPoe ? poeOn ? "poe-on" : "" : "na"}">${hasPoe ? poeStatus.poeText : "\u2014"}</div>
+            <div class="dc-value ${hasPoe ? poeOn ? "poe-on" : "" : "na"}">${hasPoe ? this._translateState(poeStatus.poeText) : "\u2014"}</div>
           </div>
           <div class="detail-card">
             <div class="dc-label">${this._t("poe_power")}</div>
