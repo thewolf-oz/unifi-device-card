@@ -91,7 +91,7 @@ export const MODEL_REGISTRY = {
 
   US48PRO: {
     kind: "switch", frontStyle: "quad-row",
-    rows: [oddRange(1, 24), evenRange(1, 24), oddRange(1, 48), evenRange(1, 48)],
+    rows: [oddRange(1, 24), evenRange(1, 24), oddRange(25, 48), evenRange(25, 48)],
     portCount: 52, displayModel: "USW Pro 48 PoE", theme: "silver",
     specialSlots: [
       { key: "sfp_1", label: "SFP+ 1", port: 49 },
@@ -138,7 +138,7 @@ export const MODEL_REGISTRY = {
     kind: "gateway", frontStyle: "gateway-single-row", rows: [[1, 2, 3, 4]],
     portCount: 7, displayModel: "Cloud Gateway Fiber", theme: "white",
     specialSlots: [
-      { key: "port_5",   label: "WAN",    port: 5 },
+      { key: "port_5", label: "WAN", port: 5 },
       { key: "sfp_1", label: "SFP+ 1", port: 6 },
       { key: "sfp_2", label: "SFP+ 2", port: 7 },
     ],
@@ -153,8 +153,6 @@ export const MODEL_REGISTRY = {
     portCount: 7, displayModel: "Dream Router", theme: "white",
     specialSlots: [
       { key: "port_5", label: "WAN", port: 5 },
-      { key: "sfp_1", label: "SFP+ 1", port: 6 },
-      { key: "sfp_2", label: "SFP+ 2", port: 7 },
     ],
   },
 
@@ -181,7 +179,7 @@ export const MODEL_REGISTRY = {
   USWULTRA: {
     kind: "switch", frontStyle: "ultra-row", rows: [range(1, 7)],
     portCount: 7, displayModel: "USW Ultra", theme: "white",
-    specialSlots: [{ key: "uplink", label: "Uplink" }],
+    specialSlots: [{ key: "port_8", label: "Uplink" }],
   },
   USWULTRA60W: {
     kind: "switch", frontStyle: "ultra-row", rows: [range(1, 7)],
