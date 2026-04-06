@@ -1,5 +1,11 @@
 # Changelog
 
+## [v0.2.6] - 2026-04-06
+
+### 🐛 Bug Fixes
+
+- **Solve issue that UCG-U shows 6 LAN Ports but only has 5**
+
 ## [v0.2.5] - 2026-04-06
 
 ### 🐛 Bug Fixes
