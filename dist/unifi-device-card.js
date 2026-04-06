@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.bbdd254 */
+/* UniFi Device Card 0.0.0-dev.9c1f401 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -624,18 +624,6 @@ function classifyPortEntity(entity) {
 function detectSpecialPortKey(entity) {
   const text = entityText(entity);
   const id = lower(entity.entity_id);
-  if (text.includes("wan 2") || id.includes("wan2"))
-    return { key: "wan2", label: "WAN 2" };
-  if ((text.includes("wan") || id.includes("wan")) && (text.includes("sfp") || id.includes("sfp")))
-    return { key: "sfp_wan", label: "WAN SFP+" };
-  if ((text.includes("lan") || id.includes("lan")) && (text.includes("sfp") || id.includes("sfp")))
-    return { key: "sfp_lan", label: "LAN SFP+" };
-  if (id.endsWith("_wan_port") || id.endsWith("_wan"))
-    return { key: "wan", label: "WAN" };
-  if (text.includes("wan") || id.includes("_wan_"))
-    return { key: "wan", label: "WAN" };
-  if (text.includes("sfp+") || text.includes("sfp") || id.includes("sfp"))
-    return { key: "sfp", label: "SFP" };
   return null;
 }
 function extractPortLabel(entity) {
@@ -1128,7 +1116,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.bbdd254";
+var VERSION = "0.0.0-dev.9c1f401";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
