@@ -511,27 +511,27 @@ function detectSpecialPortKey(entity) {
   const id   = lower(entity.entity_id);
 
   // ── WAN 2 ────────────────────────────────────────────────────────────────
-  if (text.includes("wan 2") || id.includes("wan2"))
-    return { key: "wan2", label: "WAN 2" };
+  //if (text.includes("wan 2") || id.includes("wan2"))
+  //  return { key: "wan2", label: "WAN 2" };
 
   // ── WAN SFP+ ─────────────────────────────────────────────────────────────
-  if ((text.includes("wan") || id.includes("wan")) && (text.includes("sfp") || id.includes("sfp")))
-    return { key: "sfp_wan", label: "WAN SFP+" };
+  //if ((text.includes("wan") || id.includes("wan")) && (text.includes("sfp") || id.includes("sfp")))
+  //  return { key: "sfp_wan", label: "WAN SFP+" };
 
   // ── LAN SFP+ ─────────────────────────────────────────────────────────────
-  if ((text.includes("lan") || id.includes("lan")) && (text.includes("sfp") || id.includes("sfp")))
-    return { key: "sfp_lan", label: "LAN SFP+" };
+  //if ((text.includes("lan") || id.includes("lan")) && (text.includes("sfp") || id.includes("sfp")))
+  //  return { key: "sfp_lan", label: "LAN SFP+" };
 
   // ── WAN (any named WAN port without a numeric port index) ────────────────
   // Covers: "wan_port" suffix, "wan" anywhere in id/text, named uplink ports
-  if (id.endsWith("_wan_port") || id.endsWith("_wan"))
-    return { key: "wan", label: "WAN" };
-  if (text.includes("wan") || id.includes("_wan_"))
-    return { key: "wan", label: "WAN" };
+  //if (id.endsWith("_wan_port") || id.endsWith("_wan"))
+  //  return { key: "wan", label: "WAN" };
+  //if (text.includes("wan") || id.includes("_wan_"))
+  //  return { key: "wan", label: "WAN" };
 
   // ── SFP ──────────────────────────────────────────────────────────────────
-  if (text.includes("sfp+") || text.includes("sfp") || id.includes("sfp"))
-    return { key: "sfp", label: "SFP" };
+  //if (text.includes("sfp+") || text.includes("sfp") || id.includes("sfp"))
+  //  return { key: "sfp", label: "SFP" };
 
   return null;
 }
