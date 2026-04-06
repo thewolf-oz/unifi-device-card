@@ -129,7 +129,7 @@ export const MODEL_REGISTRY = {
 
   UDRULT: {
     kind: "gateway",
-    frontStyle: "gateway-single-row",
+    frontStyle: "single-row",
     rows: [range(1, 5)],
     portCount: 5,
     displayModel: "Cloud Gateway Ultra",
@@ -139,7 +139,7 @@ export const MODEL_REGISTRY = {
 
   UDR: {
     kind: "gateway",
-    frontStyle: "gateway-single-row",
+    frontStyle: "single-row",
     rows: [range(1, 5)],
     portCount: 5,
     displayModel: "Dream Router",
@@ -149,7 +149,7 @@ export const MODEL_REGISTRY = {
 
   UDMA6A8: {
     kind: "gateway",
-    frontStyle: "gateway-single-row",
+    frontStyle: "single-row",
     rows: [range(1, 7)],
     portCount: 7,
     displayModel: "Cloud Gateway Fiber",
