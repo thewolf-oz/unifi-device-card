@@ -87,17 +87,17 @@ export const MODEL_REGISTRY = {
     specialSlots: [],
   },
 
-  USL8LP: {
+  USWED35: {
     kind: "switch",
     frontStyle: "single-row",
-    rows: [range(1, 8)],
-    portCount: 8,
-    displayModel: "USW Lite 8 PoE",
+    rows: [range(1, 5)],
+    portCount: 5,
+    displayModel: "USW Flex Mini 2.5G",
     theme: "white",
     specialSlots: [],
   },
 
-  USL8LPB: {
+  USL8LP: {
     kind: "switch",
     frontStyle: "single-row",
     rows: [range(1, 8)],
@@ -129,45 +129,45 @@ export const MODEL_REGISTRY = {
 
   UDRULT: {
     kind: "gateway",
-    frontStyle: "gateway-single-row",
-    rows: [[1, 2, 3, 4]],
-    portCount: 4,
-    displayModel: "Cloud Gateway Ultra",
-    theme: "white",
-    specialSlots: [{ key: "wan", label: "WAN" }],
-  },
-
-  UCGULTRA: {
-    kind: "gateway",
-    frontStyle: "gateway-single-row",
-    rows: [[1, 2, 3, 4]],
-    portCount: 4,
-    displayModel: "Cloud Gateway Ultra",
-    theme: "white",
-    specialSlots: [{ key: "wan", label: "WAN" }],
-  },
-
-  UCGMAX: {
-    kind: "gateway",
-    frontStyle: "gateway-single-row",
-    rows: [[1, 2, 3, 4, 5]],
+    frontStyle: "single-row",
+    rows: [range(1, 5)],
     portCount: 5,
-    displayModel: "Cloud Gateway Max",
+    displayModel: "Cloud Gateway Ultra",
     theme: "white",
-    specialSlots: [{ key: "wan", label: "WAN" }],
+    specialSlots: [],
+  },
+
+  UDR: {
+    kind: "gateway",
+    frontStyle: "single-row",
+    rows: [range(1, 5)],
+    portCount: 5,
+    displayModel: "Dream Router",
+    theme: "white",
+    specialSlots: [],
+  },
+
+  UDMA6A8: {
+    kind: "gateway",
+    frontStyle: "single-row",
+    rows: [range(1, 7)],
+    portCount: 7,
+    displayModel: "Cloud Gateway Fiber",
+    theme: "white",
+    specialSlots: [],
   },
 
   UDMPRO: {
     kind: "gateway",
     frontStyle: "gateway-rack",
     rows: [range(1, 8)],
-    portCount: 8,
+    portCount: 11,
     displayModel: "UDM Pro",
     theme: "silver",
     specialSlots: [
-      { key: "wan",     label: "WAN"     },
-      { key: "sfp_wan", label: "WAN SFP+"},
-      { key: "sfp_lan", label: "LAN SFP+"},
+      { key: "wan",   label: "WAN",    port: 9  },
+      { key: "sfp_1", label: "SFP+ 1", port: 10 },
+      { key: "sfp_2", label: "SFP+ 2", port: 11 },
     ],
   },
 
@@ -188,12 +188,42 @@ export const MODEL_REGISTRY = {
   // ── Additional common models ─────────────────────
   USW24P: {
     kind: "switch",
-    frontStyle: "dual-row",
-    rows: [range(1, 12), range(13, 24)],
+    frontStyle: "six-grid",
+    rows: [range(1, 6), range(7, 12), range(13, 18), range(19, 24)],
     portCount: 24,
     displayModel: "USW 24 PoE",
     theme: "silver",
     specialSlots: [],
+  },
+
+  // ── US 16 PoE 150W ───────────────────────────────────────────────────────
+  // 16 RJ45 PoE ports in 2×8 rows (sequential) + 2 dedicated SFP uplink slots.
+  US16P150: {
+    kind: "switch",
+    frontStyle: "dual-row",
+    rows: [range(1, 8), range(9, 16)],
+    portCount: 16,
+    displayModel: "US 16 PoE 150W",
+    theme: "silver",
+    specialSlots: [
+      { key: "sfp_1", label: "SFP 1", port: 17 },
+      { key: "sfp_2", label: "SFP 2", port: 18 },
+    ],
+  },
+
+  // ── USW Pro 24 ──────────────────────────────────────────────────────────
+  // 24 RJ45 ports in six-grid layout + 2 dedicated SFP+ uplink slots.
+  US24PRO2: {
+    kind: "switch",
+    frontStyle: "six-grid",
+    rows: [range(1, 6), range(7, 12), range(13, 18), range(19, 24)],
+    portCount: 24,
+    displayModel: "USW Pro 24",
+    theme: "silver",
+    specialSlots: [
+      { key: "sfp_1", label: "SFP+ 1", port: 25 },
+      { key: "sfp_2", label: "SFP+ 2", port: 26 },
+    ],
   },
 
   USW48P: {
@@ -206,18 +236,28 @@ export const MODEL_REGISTRY = {
     specialSlots: [],
   },
 
+  US48PRO: {
+    kind: "switch",
+    frontStyle: "quad-row",
+    rows: [oddRange(1, 24), evenRange(1, 24),oddRange(25, 48), evenRange(25, 48), range(49,52)],
+    portCount: 52,
+    displayModel: "USW Pro 48 PoE",
+    theme: "silver",
+    specialSlots: [],
+  },
+
   // ── USW Ultra family ─────────────────────────────────────────────────────
   // 7 PoE+ output ports on the front (ports 1–7), white enclosure.
   // Port 8 is on the rear: PoE++ input / uplink — exposed as a special slot.
   // Three SKUs share the same physical layout; only PoE budget differs.
-  USWULTRA: {
+  USM8P: {
     kind: "switch",
-    frontStyle: "ultra-row",
-    rows: [range(1, 7)],
-    portCount: 7,
+    frontStyle: "single-row",
+    rows: [range(1, 8)],
+    portCount: 8,
     displayModel: "USW Ultra",
     theme: "white",
-    specialSlots: [{ key: "uplink", label: "Uplink" }],
+    specialSlots: [],
   },
 
   USWULTRA60W: {
@@ -237,7 +277,7 @@ export const MODEL_REGISTRY = {
     portCount: 7,
     displayModel: "USW Ultra 210W",
     theme: "white",
-    specialSlots: [{ key: "uplink", label: "Uplink" }],
+   specialSlots: [{ key: "uplink", label: "Uplink" }],
   },
 };
 
@@ -291,9 +331,10 @@ export function resolveModelKey(device) {
     if (candidate.includes("US860W"))  return "US8P60";
 
     // Flex Mini
-    if (candidate.includes("USMINI"))    return "USMINI";
-    if (candidate.includes("FLEXMINI"))  return "USMINI";
+    if (candidate.includes("USMINI"))      return "USMINI";
+    if (candidate.includes("FLEXMINI"))    return "USMINI";
     if (candidate.includes("USWFLEXMINI")) return "USMINI";
+    if (candidate.includes("USWED35"))     return "USWED35";
 
     // Gateways
     if (candidate.includes("UDRULT"))          return "UDRULT";
@@ -314,10 +355,21 @@ export function resolveModelKey(device) {
     if (candidate.includes("SWITCHULTRA210")) return "USWULTRA210W";
     if (candidate.includes("SWITCHULTRA60"))  return "USWULTRA60W";
     if (candidate.includes("SWITCHULTRA"))    return "USWULTRA";
+    if (candidate.includes("USM8P"))          return  "USM8P";
+
+    // US 16 PoE 150W
+    if (candidate.includes("US16P150"))  return "US16P150";
+    if (candidate.includes("US16P"))     return "US16P150";
+
+    // USW Pro 24
+    if (candidate.includes("US24PRO2"))  return "US24PRO2";
+    if (candidate.includes("US24PRO"))   return "US24PRO2";
+    if (candidate.includes("USWPRO24")) return "US24PRO2";
 
     // 24/48 port switches
-    if (candidate.includes("USW24"))  return "USW24P";
-    if (candidate.includes("USW48"))  return "USW48P";
+    if (candidate.includes("USW24"))    return "USW24P";
+    if (candidate.includes("USW48"))    return "USW48P";
+    if (candidate.includes("US48PRO"))  return "US48PRO";
   }
 
   return null;
@@ -327,6 +379,9 @@ export function inferPortCountFromModel(device) {
   const text = normalizeModelKey(
     [device?.model, device?.name, device?.name_by_user].filter(Boolean).join(" ")
   );
+
+  if (text.includes("US16P150"))  return 16;
+  if (text.includes("US24PRO2") || text.includes("US24PRO") || text.includes("USWPRO24")) return 24;
 
   if (text.includes("USL16LPB"))       return 16;
   if (text.includes("USL16LP"))        return 16;
@@ -345,14 +400,17 @@ export function inferPortCountFromModel(device) {
   if (text.includes("USMINI"))       return 5;
   if (text.includes("FLEXMINI"))     return 5;
 
-  if (text.includes("UCGULTRA"))     return 4;
-  if (text.includes("CLOUDGATEWAYULTRA")) return 4;
+  if (text.includes("UCGULTRA"))     return 5;
+  if (text.includes("CLOUDGATEWAYULTRA")) return 5;
+  if (text.includes("UDR"))          return 5;
+  if (text.includes("UDRULT"))       return 5;
   if (text.includes("UCGMAX"))       return 5;
   if (text.includes("UDMPRO"))       return 8;
   if (text.includes("UDMSE"))        return 8;
+  if (text.includes("UDMA6A8"))        return 7;
 
   if (text.includes("USWULTRA")) return 7;
-
+  if (text.includes("48PRO"))  return 52;
   if (text.includes("48")) return 48;
   if (text.includes("24")) return 24;
 

@@ -77,9 +77,9 @@ function hasUbiquitiManufacturer(device) {
 // Whitelist of model-key prefixes that are definitely
 // switches or gateways (never APs, cameras, etc.)
 // ─────────────────────────────────────────────────
-const SWITCH_MODEL_PREFIXES  = ["USW", "USL", "US8", "USMINI", "FLEXMINI"];
-const GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UDRULT", "UDMPRO", "UDMSE"];
-const AP_MODEL_PREFIXES      = ["UAP", "U6", "U7", "UAL", "UAPMESH"];
+const SWITCH_MODEL_PREFIXES  = ["USW", "USL", "US8", "USMINI", "FLEXMINI", "USM8P", "USWED35", "US48PRO"];
+const GATEWAY_MODEL_PREFIXES = ["UDM", "UCG", "UXG", "UDRULT", "UDMPRO", "UDMSE", "UDMA6A8", "UDR"];
+const AP_MODEL_PREFIXES      = ["UAP", "U6", "U7", "UAL", "UAPMESH", "U7PRO", "U7LT", "UAC"];
 
 function normalizeModelStr(value) {
   return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -103,9 +103,8 @@ function classifyDevice(device, entities) {
   // 2. Known model key from registry (most reliable)
   const modelKey = resolveModelKey(device);
   if (modelKey) {
-    if (["UDRULT","UCGULTRA","UCGMAX","UDMPRO","UDMSE"].includes(modelKey)) return "gateway";
-    if (["US8P60","USMINI","USL8LP","USL8LPB","USL16LP","USL16LPB",
-         "USW24P","USW48P"].includes(modelKey)) return "switch";
+    if (["UDRULT","UCGULTRA","UCGMAX","UDMPRO","UDMSE","UDMA6A8","UDR"].includes(modelKey)) return "gateway";
+    if (["US8P60","USMINI","USL8LP","USL8LPB","USL16LP","USL16LPB","USM8P","USWED35","USW24P","USW48P","US24PRO","US48PRO"].includes(modelKey)) return "switch";
   }
 
   // 3. Model prefix whitelist
@@ -121,9 +120,9 @@ function classifyDevice(device, entities) {
   if (hasUbiquitiManufacturer(device)) {
     const model    = lower(device?.model);
     const name     = lower(device?.name_by_user || device?.name);
-    if (model.includes("udm") || model.includes("ucg") || model.includes("uxg") ||
+    if (model.includes("udm") || model.includes("ucg") || model.includes("uxg") || model.includes("udr") ||
         name.includes("gateway")) return "gateway";
-    if (model.includes("usw") || model.includes("usl") || model.includes("us8") ||
+    if (model.includes("usw") || model.includes("usl") || model.includes("us8") ||model.includes("usm") ||
         name.includes("switch")) return "switch";
   }
 
@@ -291,20 +290,52 @@ export async function getDeviceContext(hass, deviceId) {
   const type = classifyDevice(device, entities);
   if (type !== "switch" && type !== "gateway") return null;
 
-  const numberedPorts = discoverPorts(entities);
-  const specialPorts  = discoverSpecialPorts(entities);
+  // HA 2022.6+ no longer includes unique_id in the WS entity list.
+  // For renamed port entities, unique_id is the only reliable way to
+  // extract the port number. Fetch full details in parallel for any
+  // port-telemetry entity that still lacks a resolvable port number.
+  const PORT_TK = new Set([
+    "port_bandwidth_rx", "port_bandwidth_tx", "port_link_speed",
+    "poe", "poe_power", "poe_port_control",
+  ]);
+  const needsUID = (entitiesByDevice.get(deviceId) || []).filter((e) =>
+    !e.unique_id &&
+    e.translation_key && PORT_TK.has(e.translation_key) &&
+    !/_port_\d+(?:_|$)/i.test(e.entity_id) &&
+    !(e.original_name && /\bport\s+\d+\b/i.test(e.original_name)) &&
+    !(e.name && /\bport\s+\d+\b/i.test(e.name))
+  );
+  let workingEntities = entities;
+  if (needsUID.length > 0) {
+    const details = await Promise.all(
+      needsUID.map((e) =>
+        safeCallWS(hass, { type: "config/entity_registry/get", entity_id: e.entity_id }, null)
+      )
+    );
+    const uidMap = new Map(
+      details.filter(Boolean).filter((d) => d.unique_id).map((d) => [d.entity_id, d.unique_id])
+    );
+    if (uidMap.size > 0) {
+      workingEntities = entities.map((e) =>
+        uidMap.has(e.entity_id) ? { ...e, unique_id: uidMap.get(e.entity_id) } : e
+      );
+    }
+  }
+
+  const numberedPorts = discoverPorts(workingEntities);
+  const specialPorts  = discoverSpecialPorts(workingEntities);
   const layout        = getDeviceLayout(device, numberedPorts);
 
   return {
     device,
-    entities,
+    entities: workingEntities,
     type,
     layout,
     specialPorts,
     name:         normalize(device.name_by_user) || normalize(device.name) || normalize(device.model),
     model:        normalize(device.model),
     manufacturer: normalize(device.manufacturer),
-    firmware:     extractFirmware(device, entities),
+    firmware:     extractFirmware(device, workingEntities),
   };
 }
 
@@ -512,27 +543,27 @@ function detectSpecialPortKey(entity) {
   const id   = lower(entity.entity_id);
 
   // ── WAN 2 ────────────────────────────────────────────────────────────────
-  if (text.includes("wan 2") || id.includes("wan2"))
-    return { key: "wan2", label: "WAN 2" };
+  //if (text.includes("wan 2") || id.includes("wan2"))
+  //  return { key: "wan2", label: "WAN 2" };
 
   // ── WAN SFP+ ─────────────────────────────────────────────────────────────
-  if ((text.includes("wan") || id.includes("wan")) && (text.includes("sfp") || id.includes("sfp")))
-    return { key: "sfp_wan", label: "WAN SFP+" };
+  //if ((text.includes("wan") || id.includes("wan")) && (text.includes("sfp") || id.includes("sfp")))
+  //  return { key: "sfp_wan", label: "WAN SFP+" };
 
   // ── LAN SFP+ ─────────────────────────────────────────────────────────────
-  if ((text.includes("lan") || id.includes("lan")) && (text.includes("sfp") || id.includes("sfp")))
-    return { key: "sfp_lan", label: "LAN SFP+" };
+  //if ((text.includes("lan") || id.includes("lan")) && (text.includes("sfp") || id.includes("sfp")))
+  //  return { key: "sfp_lan", label: "LAN SFP+" };
 
   // ── WAN (any named WAN port without a numeric port index) ────────────────
   // Covers: "wan_port" suffix, "wan" anywhere in id/text, named uplink ports
-  if (id.endsWith("_wan_port") || id.endsWith("_wan"))
-    return { key: "wan", label: "WAN" };
-  if (text.includes("wan") || id.includes("_wan_"))
-    return { key: "wan", label: "WAN" };
+  //if (id.endsWith("_wan_port") || id.endsWith("_wan"))
+  //  return { key: "wan", label: "WAN" };
+  //if (text.includes("wan") || id.includes("_wan_"))
+  //  return { key: "wan", label: "WAN" };
 
   // ── SFP ──────────────────────────────────────────────────────────────────
-  if (text.includes("sfp+") || text.includes("sfp") || id.includes("sfp"))
-    return { key: "sfp", label: "SFP" };
+  //if (text.includes("sfp+") || text.includes("sfp") || id.includes("sfp"))
+  //  return { key: "sfp", label: "SFP" };
 
   return null;
 }
@@ -642,11 +673,15 @@ export function discoverSpecialPorts(entities) {
 }
 
 export function mergePortsWithLayout(layout, discoveredPorts) {
-  const byPort     = new Map(discoveredPorts.map((p) => [p.port, p]));
-  const layoutPorts = (layout?.rows || []).flat();
-  const merged     = [];
+  const byPort       = new Map(discoveredPorts.map((p) => [p.port, p]));
+  const layoutPorts  = (layout?.rows || []).flat();
+  const specialPorts = new Set(
+    (layout?.specialSlots || []).map((slot) => slot.port).filter((p) => p !== null && p !== undefined)
+  );
+  const merged = [];
 
   for (const portNumber of layoutPorts) {
+    if (specialPorts.has(portNumber)) continue;
     merged.push(
       byPort.get(portNumber) || {
         key:               `port-${portNumber}`,
@@ -664,21 +699,35 @@ export function mergePortsWithLayout(layout, discoveredPorts) {
   }
 
   for (const port of discoveredPorts) {
+    if (specialPorts.has(port.port)) continue;
     if (!layoutPorts.includes(port.port)) merged.push(port);
   }
 
   return merged.sort((a, b) => (a.port ?? 999) - (b.port ?? 999));
 }
 
-export function mergeSpecialsWithLayout(layout, discoveredSpecials) {
-  const byKey         = new Map(discoveredSpecials.map((s) => [s.key, s]));
+export function mergeSpecialsWithLayout(layout, discoveredSpecials, discoveredPorts = []) {
+  const byKey          = new Map(discoveredSpecials.map((s) => [s.key, s]));
+  const byPort         = new Map(discoveredPorts.map((p) => [p.port, p]));
   const layoutSpecials = layout?.specialSlots || [];
 
   const merged = layoutSpecials.map((slot) => {
+    // Resolve by port number first (more reliable than key matching)
+    if (slot.port !== null && slot.port !== undefined) {
+      const discovered = byPort.get(slot.port);
+      if (discovered) {
+        return {
+          ...discovered,
+          key:   slot.key,
+          kind:  "special",
+          label: slot.label,
+        };
+      }
+    }
     return (
       byKey.get(slot.key) || {
         key:               slot.key,
-        port:              null,
+        port:              slot.port ?? null,
         label:             slot.label,
         kind:              "special",
         link_entity:       null,
@@ -686,16 +735,65 @@ export function mergeSpecialsWithLayout(layout, discoveredSpecials) {
         poe_switch_entity: null,
         poe_power_entity:  null,
         power_cycle_entity:null,
+        rx_entity:         null,
+        tx_entity:         null,
         raw_entities:      [],
       }
     );
   });
 
+  const hasPortMappedSpecials = layoutSpecials.some((slot) => slot.port !== null && slot.port !== undefined);
   for (const special of discoveredSpecials) {
+    if (hasPortMappedSpecials && (
+      special.key === "wan" || special.key === "wan2" ||
+      special.key === "sfp" || special.key === "sfp_wan" || special.key === "sfp_lan"
+    )) continue;
     if (!layoutSpecials.some((s) => s.key === special.key)) merged.push(special);
   }
 
   return merged;
+}
+
+function trafficValue(hass, entityId) {
+  const st = stateObj(hass, entityId);
+  if (!st) return null;
+  const num = parseFloat(String(st.state ?? "").replace(",", "."));
+  return Number.isNaN(num) ? null : num;
+}
+
+function hasTraffic(hass, port) {
+  const rx = trafficValue(hass, port?.rx_entity);
+  const tx = trafficValue(hass, port?.tx_entity);
+  return (rx !== null && rx > 0) || (tx !== null && tx > 0);
+}
+
+export function getPoeStatus(hass, port) {
+  const hasPoe = Boolean(port?.poe_switch_entity || port?.poe_power_entity);
+  if (!hasPoe) return { hasPoe: false, poeOn: false, poeText: "—", canToggle: false };
+
+  const poeSwitch = stateObj(hass, port?.poe_switch_entity);
+  const switchVal = String(poeSwitch?.state ?? "").toLowerCase();
+  if (poeSwitch && switchVal !== "unknown" && switchVal !== "unavailable") {
+    return {
+      hasPoe:    true,
+      poeOn:     isOn(hass, port.poe_switch_entity),
+      poeText:   String(poeSwitch.state),
+      canToggle: Boolean(port?.poe_switch_entity),
+    };
+  }
+
+  const poePower = stateObj(hass, port?.poe_power_entity);
+  const powerNum = parseFloat(String(poePower?.state ?? "").replace(",", "."));
+  if (!Number.isNaN(powerNum)) {
+    return {
+      hasPoe:    true,
+      poeOn:     powerNum > 0,
+      poeText:   powerNum > 0 ? "on" : "off",
+      canToggle: false,
+    };
+  }
+
+  return { hasPoe: true, poeOn: false, poeText: "—", canToggle: false };
 }
 
 export function stateObj(hass, entityId) {
@@ -744,6 +842,12 @@ export function isOn(hass, entityId, port = null) {
     }
   }
 
+  // For dedicated special slots (WAN/SFP), prefer live traffic when RX/TX sensors
+  // are available to avoid false "online" from stale speed-only sensors.
+  if (port?.kind === "special" && (port?.rx_entity || port?.tx_entity)) {
+    return hasTraffic(hass, port);
+  }
+
   // 2. Speed entity: negotiated speed > 0 = link is definitively up
   if (port?.speed_entity) {
     const speedState = stateObj(hass, port.speed_entity);
@@ -771,6 +875,12 @@ export function formatState(hass, entityId, fallback = "—") {
   const unit = state.attributes?.unit_of_measurement;
   if (state.state === "unknown" || state.state === "unavailable") return "—";
 
+  const num = parseFloat(String(state.state).replace(",", "."));
+  if (!Number.isNaN(num)) {
+    const rounded = num.toFixed(2);
+    return unit ? `${rounded} ${unit}` : rounded;
+  }
+
   return unit ? `${state.state} ${unit}` : state.state;
 }
 
@@ -785,6 +895,10 @@ export function getPortLinkText(hass, port) {
   if (direct) {
     const value = String(direct.state ?? "");
     if (isLikelyLinkStateValue(value)) return value;
+  }
+
+  if (port?.kind === "special" && (port?.rx_entity || port?.tx_entity)) {
+    return hasTraffic(hass, port) ? "connected" : "disconnected";
   }
 
   for (const entityId of port?.raw_entities || []) {
