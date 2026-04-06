@@ -69,6 +69,19 @@ class UnifiDeviceCard extends HTMLElement {
     return t(this._hass, key);
   }
 
+  /**
+   * Translate a raw HA state value (e.g. "on", "connected", "up") to a
+   * localised string. Falls back to the original value if not recognised,
+   * so sensor readings / firmware strings are passed through unchanged.
+   */
+  _translateState(raw) {
+    if (!raw || raw === "—") return raw;
+    const key = `state_${String(raw).toLowerCase().replace(/\s+/g, "_")}`;
+    const translated = this._t(key);
+    // If the key was not found, t() returns the key itself – use original value instead
+    return translated === key ? raw : translated;
+  }
+
   _cardBgStyle() {
     return this._config?.background_color || "var(--card-background-color)";
   }
@@ -711,7 +724,7 @@ class UnifiDeviceCard extends HTMLElement {
 
       const portTitle = selected.kind === "special"
         ? (portLabel ? `${selected.label} <span class="port-custom-label">— ${portLabel}</span>` : selected.label)
-        : (portLabel ? `Port ${selected.port} <span class="port-custom-label">— ${portLabel}</span>` : `Port ${selected.port}`);
+        : (portLabel ? `${this._t("port_label")} ${selected.port} <span class="port-custom-label">— ${portLabel}</span>` : `${this._t("port_label")} ${selected.port}`);
 
       const speedDisabledHint = (!speedText || speedText === "—") && selected.speed_entity
         ? `<div class="hint-disabled">${this._t("speed_disabled")}</div>`
@@ -733,7 +746,7 @@ class UnifiDeviceCard extends HTMLElement {
         <div class="detail-grid">
           <div class="detail-card">
             <div class="dc-label">${this._t("link_status")}</div>
-            <div class="dc-value">${linkText !== "—" ? linkText : (linkUp ? this._t("connected") : this._t("no_link"))}</div>
+            <div class="dc-value">${linkText !== "—" ? this._translateState(linkText) : (linkUp ? this._t("connected") : this._t("no_link"))}</div>
           </div>
           <div class="detail-card">
             <div class="dc-label">${this._t("speed")}</div>
@@ -741,7 +754,7 @@ class UnifiDeviceCard extends HTMLElement {
           </div>
           <div class="detail-card">
             <div class="dc-label">${this._t("poe")}</div>
-            <div class="dc-value ${hasPoe ? (poeOn ? "poe-on" : "") : "na"}">${hasPoe ? poeStatus.poeText : "—"}</div>
+            <div class="dc-value ${hasPoe ? (poeOn ? "poe-on" : "") : "na"}">${hasPoe ? this._translateState(poeStatus.poeText) : "—"}</div>
           </div>
           <div class="detail-card">
             <div class="dc-label">${this._t("poe_power")}</div>
