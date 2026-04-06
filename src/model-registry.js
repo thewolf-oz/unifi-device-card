@@ -89,21 +89,49 @@ export const MODEL_REGISTRY = {
     portCount: 48, displayModel: "USW 48 PoE", theme: "silver", specialSlots: [],
   },
 
+  // ── Cloud Gateways ────────────────────────────────
+  //
+  // UCG-Ultra / UDR-ULT
+  //   5 physical ports: 4× 1G RJ45 (LAN 1–4) + 1× 2.5G RJ45 (Port 5, default WAN)
+  //   Max WAN ports: 4 (any port can be remapped)
   UDRULT: {
     kind: "gateway", frontStyle: "gateway-single-row", rows: [[1, 2, 3, 4]],
-    portCount: 4, displayModel: "Cloud Gateway Ultra", theme: "white",
-    specialSlots: [{ key: "wan", label: "WAN" }],
+    portCount: 5, displayModel: "Cloud Gateway Ultra", theme: "white",
+    specialSlots: [{ key: "wan", label: "WAN", port: 5 }],
   },
   UCGULTRA: {
     kind: "gateway", frontStyle: "gateway-single-row", rows: [[1, 2, 3, 4]],
-    portCount: 4, displayModel: "Cloud Gateway Ultra", theme: "white",
-    specialSlots: [{ key: "wan", label: "WAN" }],
+    portCount: 5, displayModel: "Cloud Gateway Ultra", theme: "white",
+    specialSlots: [{ key: "wan", label: "WAN", port: 5 }],
   },
+
+  // UCG-Max
+  //   5 physical ports: 4× 2.5G RJ45 (LAN 1–4) + 1× 2.5G RJ45 (Port 5, default WAN)
+  //   Max WAN ports: 4 (any port can be remapped)
   UCGMAX: {
-    kind: "gateway", frontStyle: "gateway-single-row", rows: [[1, 2, 3, 4, 5]],
+    kind: "gateway", frontStyle: "gateway-single-row", rows: [[1, 2, 3, 4]],
     portCount: 5, displayModel: "Cloud Gateway Max", theme: "white",
-    specialSlots: [{ key: "wan", label: "WAN" }],
+    specialSlots: [{ key: "wan", label: "WAN", port: 5 }],
   },
+
+  // UCG-Fiber
+  //   7 physical ports:
+  //     Ports 1–4 : 2.5G RJ45 (LAN, port 4 has PoE+)
+  //     Port 5    : 10G SFP+ (LAN default, WAN-capable)
+  //     Port 6    : 10G RJ45 (default WAN)
+  //     Port 7    : 10G SFP+ (default WAN 2)
+  //   Max WAN ports: 6 (all ports can be remapped)
+  //   Note: port numbers are assumed based on physical order; verify against real HA entity IDs.
+  UCGFIBER: {
+    kind: "gateway", frontStyle: "gateway-single-row", rows: [[1, 2, 3, 4]],
+    portCount: 7, displayModel: "Cloud Gateway Fiber", theme: "white",
+    specialSlots: [
+      { key: "sfp_1", label: "SFP+ 1", port: 5 },
+      { key: "wan",   label: "WAN",    port: 6 },
+      { key: "sfp_2", label: "SFP+ 2", port: 7 },
+    ],
+  },
+
   UDMPRO: {
     kind: "gateway", frontStyle: "gateway-rack", rows: [range(1, 8)],
     portCount: 11, displayModel: "UDM Pro", theme: "silver",
@@ -152,41 +180,45 @@ export function resolveModelKey(device) {
 
     if (candidate.includes("USL16LPB"))       return "USL16LPB";
     if (candidate.includes("USL16LP"))        return "USL16LP";
-    if (candidate.includes("USWLITE16POE"))  return "USL16LPB";
-    if (candidate.includes("USWLITE16"))     return "USL16LPB";
+    if (candidate.includes("USWLITE16POE"))   return "USL16LPB";
+    if (candidate.includes("USWLITE16"))      return "USL16LPB";
     if ((candidate.includes("LITE") || candidate.includes("USW")) && candidate.includes("16") && candidate.includes("POE")) return "USL16LPB";
 
-    if (candidate.includes("USL8LPB"))       return "USL8LPB";
-    if (candidate.includes("USL8LP"))        return "USL8LP";
-    if (candidate.includes("USWLITE8POE"))  return "USL8LPB";
-    if (candidate.includes("USWLITE8"))     return "USL8LPB";
+    if (candidate.includes("USL8LPB"))        return "USL8LPB";
+    if (candidate.includes("USL8LP"))         return "USL8LP";
+    if (candidate.includes("USWLITE8POE"))    return "USL8LPB";
+    if (candidate.includes("USWLITE8"))       return "USL8LPB";
     if ((candidate.includes("LITE") || candidate.includes("USW")) && candidate.includes("8") && candidate.includes("POE")) return "USL8LPB";
 
-    if (candidate.includes("US8P60"))        return "US8P60";
-    if (candidate.includes("US860W"))        return "US8P60";
+    if (candidate.includes("US8P60"))         return "US8P60";
+    if (candidate.includes("US860W"))         return "US8P60";
 
-    if (candidate.includes("USMINI"))        return "USMINI";
-    if (candidate.includes("FLEXMINI"))      return "USMINI";
-    if (candidate.includes("USWFLEXMINI"))  return "USMINI";
+    if (candidate.includes("USMINI"))         return "USMINI";
+    if (candidate.includes("FLEXMINI"))       return "USMINI";
+    if (candidate.includes("USWFLEXMINI"))    return "USMINI";
 
     // US 16 PoE 150W — before generic US16 patterns
-    if (candidate.includes("US16P150"))      return "US16P150";
-    if (candidate.includes("US16POE150"))    return "US16P150";
-    if (candidate.includes("US16P"))         return "US16P150";
+    if (candidate.includes("US16P150"))       return "US16P150";
+    if (candidate.includes("US16POE150"))     return "US16P150";
+    if (candidate.includes("US16P"))          return "US16P150";
 
     // USW Pro 24 — before generic USW24 pattern
-    if (candidate.includes("US24PRO2"))      return "US24PRO2";
-    if (candidate.includes("US24PRO"))       return "US24PRO2";
-    if (candidate.includes("USWPRO24"))     return "US24PRO2";
-    if (candidate.includes("SWITCHPRO24")) return "US24PRO2";
+    if (candidate.includes("US24PRO2"))       return "US24PRO2";
+    if (candidate.includes("US24PRO"))        return "US24PRO2";
+    if (candidate.includes("USWPRO24"))       return "US24PRO2";
+    if (candidate.includes("SWITCHPRO24"))    return "US24PRO2";
 
-    if (candidate.includes("UDRULT"))            return "UDRULT";
-    if (candidate.includes("UCGULTRA"))          return "UCGULTRA";
-    if (candidate.includes("CLOUDGATEWAYULTRA")) return "UCGULTRA";
-    if (candidate.includes("UCGMAX"))            return "UCGMAX";
-    if (candidate.includes("CLOUDGATEWAYMAX"))   return "UCGMAX";
-    if (candidate.includes("UDMPRO"))            return "UDMPRO";
-    if (candidate.includes("UDMSE"))             return "UDMSE";
+    // Cloud Gateways — UCGFIBER before UCGMAX/UCGULTRA to avoid partial matches
+    if (candidate.includes("UCGFIBER"))           return "UCGFIBER";
+    if (candidate.includes("CLOUDGATEWAYFIBER"))  return "UCGFIBER";
+
+    if (candidate.includes("UDRULT"))             return "UDRULT";
+    if (candidate.includes("UCGULTRA"))           return "UCGULTRA";
+    if (candidate.includes("CLOUDGATEWAYULTRA"))  return "UCGULTRA";
+    if (candidate.includes("UCGMAX"))             return "UCGMAX";
+    if (candidate.includes("CLOUDGATEWAYMAX"))    return "UCGMAX";
+    if (candidate.includes("UDMPRO"))             return "UDMPRO";
+    if (candidate.includes("UDMSE"))              return "UDMSE";
 
     if (candidate === "USWULTRA")              return "USWULTRA";
     if (candidate === "USWULTRA60W")           return "USWULTRA60W";
@@ -219,9 +251,11 @@ export function inferPortCountFromModel(device) {
   if (text.includes("US16P150") || text.includes("US16P"))   return 18;
   if (text.includes("US24PRO2") || text.includes("US24PRO") || text.includes("USWPRO24")) return 26;
 
-  if (text.includes("UCGULTRA") || text.includes("CLOUDGATEWAYULTRA")) return 4;
-  if (text.includes("UCGMAX"))   return 5;
-  if (text.includes("UDMPRO") || text.includes("UDMSE"))     return 11;
+  // UCGFIBER before UCGULTRA/UCGMAX to avoid partial matches
+  if (text.includes("UCGFIBER") || text.includes("CLOUDGATEWAYFIBER")) return 7;
+  if (text.includes("UCGULTRA") || text.includes("CLOUDGATEWAYULTRA") || text.includes("UDRULT")) return 5;
+  if (text.includes("UCGMAX")   || text.includes("CLOUDGATEWAYMAX"))  return 5;
+  if (text.includes("UDMPRO")   || text.includes("UDMSE"))            return 11;
   if (text.includes("USWULTRA")) return 7;
 
   if (text.includes("48"))  return 48;
