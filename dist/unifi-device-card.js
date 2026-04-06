@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.bc7f147 */
+/* UniFi Device Card 0.0.0-dev.14f75f3 */
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __esm = (fn, res) => function __init() {
@@ -228,7 +228,7 @@ var init_model_registry = __esm({
       US48PRO: {
         kind: "switch",
         frontStyle: "quad-row",
-        rows: [oddRange(1, 24), evenRange(1, 24), oddRange(1, 48), evenRange(1, 48)],
+        rows: [oddRange(1, 24), evenRange(1, 24), oddRange(25, 48), evenRange(25, 48)],
         portCount: 52,
         displayModel: "USW Pro 48 PoE",
         theme: "silver",
@@ -307,9 +307,7 @@ var init_model_registry = __esm({
         displayModel: "Dream Router",
         theme: "white",
         specialSlots: [
-          { key: "port_5", label: "WAN", port: 5 },
-          { key: "sfp_1", label: "SFP+ 1", port: 6 },
-          { key: "sfp_2", label: "SFP+ 2", port: 7 }
+          { key: "port_5", label: "WAN", port: 5 }
         ]
       },
       UDMPRO: {
@@ -346,7 +344,7 @@ var init_model_registry = __esm({
         portCount: 7,
         displayModel: "USW Ultra",
         theme: "white",
-        specialSlots: [{ key: "uplink", label: "Uplink" }]
+        specialSlots: [{ key: "port_8", label: "Uplink" }]
       },
       USWULTRA60W: {
         kind: "switch",
@@ -1861,7 +1859,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.bc7f147";
+var VERSION = "0.0.0-dev.14f75f3";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
