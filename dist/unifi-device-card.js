@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.15bb64f */
+/* UniFi Device Card 0.0.0-dev.57b507a */
 
 // src/model-registry.js
 function range(start, end) {
@@ -406,10 +406,7 @@ var PORT_TRANSLATION_KEYS = /* @__PURE__ */ new Set([
 async function getUnifiDevices(hass) {
   const { devices, entitiesByDevice, configEntries } = await getAllData(hass);
   const unifiEntryIds = extractUnifiEntryIds(configEntries);
-  console.debug(
-    "[unifi-device-card] Config entries:",
-    (configEntries || []).map((e) => ({ domain: e.domain, title: e.title, id: e.entry_id }))
-  );
+  console.debug("[unifi-device-card] Config entries:", (configEntries || []).map((e) => ({ domain: e.domain, title: e.title, id: e.entry_id })));
   const results = [];
   for (const device of devices || []) {
     const entities = entitiesByDevice.get(device.id) || [];
@@ -417,14 +414,7 @@ async function getUnifiDevices(hass) {
     const modelKey = resolveModelKey(device);
     const type = classifyDevice(device, entities);
     if (hasUbiquitiManufacturer(device) || byConfigEntry) {
-      console.debug("[unifi-device-card] Candidate:", {
-        name: device.name_by_user || device.name,
-        model: device.model,
-        byConfigEntry,
-        modelKey,
-        type,
-        isUnifi: isUnifiDevice(device, unifiEntryIds, entities)
-      });
+      console.debug("[unifi-device-card] Candidate:", { name: device.name_by_user || device.name, model: device.model, byConfigEntry, modelKey, type, isUnifi: isUnifiDevice(device, unifiEntryIds, entities) });
     }
     if (!isUnifiDevice(device, unifiEntryIds, entities)) continue;
     if (type !== "switch" && type !== "gateway") continue;
@@ -452,17 +442,11 @@ async function getDeviceContext(hass, deviceId) {
   );
   if (needsUID.length > 0) {
     const details = await Promise.all(
-      needsUID.map(
-        (e) => safeCallWS(hass, { type: "config/entity_registry/get", entity_id: e.entity_id }, null)
-      )
+      needsUID.map((e) => safeCallWS(hass, { type: "config/entity_registry/get", entity_id: e.entity_id }, null))
     );
-    const uidMap = new Map(
-      details.filter(Boolean).filter((d) => d.unique_id).map((d) => [d.entity_id, d.unique_id])
-    );
+    const uidMap = new Map(details.filter(Boolean).filter((d) => d.unique_id).map((d) => [d.entity_id, d.unique_id]));
     if (uidMap.size > 0) {
-      entities = entities.map(
-        (e) => uidMap.has(e.entity_id) ? { ...e, unique_id: uidMap.get(e.entity_id) } : e
-      );
+      entities = entities.map((e) => uidMap.has(e.entity_id) ? { ...e, unique_id: uidMap.get(e.entity_id) } : e);
     }
   }
   const numberedPorts = discoverPorts(entities);
@@ -687,6 +671,9 @@ function mergeSpecialsWithLayout(layout, discoveredSpecials, discoveredPorts = [
   }
   return merged;
 }
+function stateObj(hass, entityId) {
+  return entityId ? hass.states[entityId] || null : null;
+}
 function getPoeStatus(hass, port) {
   const hasPoe = Boolean(port?.poe_switch_entity || port?.poe_power_entity);
   if (!hasPoe) {
@@ -723,9 +710,6 @@ function getPoeStatus(hass, port) {
     poeText: "\u2014",
     canToggle: false
   };
-}
-function stateObj(hass, entityId) {
-  return entityId ? hass.states[entityId] || null : null;
 }
 function isOn(hass, entityId, port = null) {
   if (entityId) {
@@ -783,9 +767,7 @@ function getPortLinkText(hass, port) {
     if (!st) continue;
     const value = String(st.state ?? "");
     const id = lower(entityId);
-    if (isLikelyLinkStateValue(value) && !id.includes("poe") && !id.includes("power") && !id.includes("speed")) {
-      return value;
-    }
+    if (isLikelyLinkStateValue(value) && !id.includes("poe") && !id.includes("power") && !id.includes("speed")) return value;
   }
   const isSpecial = port?.kind === "special";
   const hasTraffic = port?.rx_entity || port?.tx_entity;
@@ -1147,7 +1129,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.15bb64f";
+var VERSION = "0.0.0-dev.57b507a";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
