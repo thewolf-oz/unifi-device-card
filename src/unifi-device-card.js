@@ -83,7 +83,9 @@ class UnifiDeviceCard extends HTMLElement {
   }
 
   _cardBgStyle() {
-    return this._config?.background_color || "var(--card-background-color)";
+    // Return the custom colour only when explicitly set.
+    // An empty string means "use the HA theme" so we never force a value.
+    return this._config?.background_color || "";
   }
 
   async _ensureLoaded() {
@@ -172,7 +174,7 @@ class UnifiDeviceCard extends HTMLElement {
 
       ha-card {
         background: var(--udc-card-bg, var(--card-background-color)) !important;
-        color: var(--udc-text) !important;
+        color: var(--primary-text-color, var(--udc-text)) !important;
         border: var(--ha-card-border-width, 1px) solid var(--ha-card-border-color, var(--udc-border)) !important;
         border-radius: var(--ha-card-border-radius, var(--udc-r)) !important;
         box-shadow: var(--ha-card-box-shadow, none);
@@ -782,7 +784,7 @@ class UnifiDeviceCard extends HTMLElement {
     }
 
     this.shadowRoot.innerHTML = `${this._styles()}
-      <ha-card style="--udc-card-bg: ${this._cardBgStyle()}">
+      <ha-card ${this._cardBgStyle() ? `style="--udc-card-bg: ${this._cardBgStyle()}"` : ""}>
         <div class="header">
           <div class="header-info">
             <div class="title">${title}</div>
@@ -818,7 +820,7 @@ class UnifiDeviceCard extends HTMLElement {
 
     if (!this._config?.device_id) {
       this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card style="--udc-card-bg: ${this._cardBgStyle()}">
+        <ha-card ${this._cardBgStyle() ? `style="--udc-card-bg: ${this._cardBgStyle()}"` : ""}>
           <div class="header">
             <div class="header-info">
               <div class="title">${title}</div>
@@ -832,7 +834,7 @@ class UnifiDeviceCard extends HTMLElement {
 
     if (this._loading) {
       this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card style="--udc-card-bg: ${this._cardBgStyle()}">
+        <ha-card ${this._cardBgStyle() ? `style="--udc-card-bg: ${this._cardBgStyle()}"` : ""}>
           <div class="header">
             <div class="header-info">
               <div class="title">${title}</div>
@@ -846,7 +848,7 @@ class UnifiDeviceCard extends HTMLElement {
 
     if (!this._ctx) {
       this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card style="--udc-card-bg: ${this._cardBgStyle()}">
+        <ha-card ${this._cardBgStyle() ? `style="--udc-card-bg: ${this._cardBgStyle()}"` : ""}>
           <div class="header">
             <div class="header-info">
               <div class="title">${title}</div>
