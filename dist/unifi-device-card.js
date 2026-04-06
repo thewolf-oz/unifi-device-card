@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.c6fbaf2 */
+/* UniFi Device Card 0.0.0-dev.c40eb74 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -406,7 +406,10 @@ var PORT_TRANSLATION_KEYS = /* @__PURE__ */ new Set([
 async function getUnifiDevices(hass) {
   const { devices, entitiesByDevice, configEntries } = await getAllData(hass);
   const unifiEntryIds = extractUnifiEntryIds(configEntries);
-  console.debug("[unifi-device-card] Config entries:", (configEntries || []).map((e) => ({ domain: e.domain, title: e.title, id: e.entry_id })));
+  console.debug(
+    "[unifi-device-card] Config entries:",
+    (configEntries || []).map((e) => ({ domain: e.domain, title: e.title, id: e.entry_id }))
+  );
   const results = [];
   for (const device of devices || []) {
     const entities = entitiesByDevice.get(device.id) || [];
@@ -414,7 +417,14 @@ async function getUnifiDevices(hass) {
     const modelKey = resolveModelKey(device);
     const type = classifyDevice(device, entities);
     if (hasUbiquitiManufacturer(device) || byConfigEntry) {
-      console.debug("[unifi-device-card] Candidate:", { name: device.name_by_user || device.name, model: device.model, byConfigEntry, modelKey, type, isUnifi: isUnifiDevice(device, unifiEntryIds, entities) });
+      console.debug("[unifi-device-card] Candidate:", {
+        name: device.name_by_user || device.name,
+        model: device.model,
+        byConfigEntry,
+        modelKey,
+        type,
+        isUnifi: isUnifiDevice(device, unifiEntryIds, entities)
+      });
     }
     if (!isUnifiDevice(device, unifiEntryIds, entities)) continue;
     if (type !== "switch" && type !== "gateway") continue;
@@ -442,11 +452,17 @@ async function getDeviceContext(hass, deviceId) {
   );
   if (needsUID.length > 0) {
     const details = await Promise.all(
-      needsUID.map((e) => safeCallWS(hass, { type: "config/entity_registry/get", entity_id: e.entity_id }, null))
+      needsUID.map(
+        (e) => safeCallWS(hass, { type: "config/entity_registry/get", entity_id: e.entity_id }, null)
+      )
     );
-    const uidMap = new Map(details.filter(Boolean).filter((d) => d.unique_id).map((d) => [d.entity_id, d.unique_id]));
+    const uidMap = new Map(
+      details.filter(Boolean).filter((d) => d.unique_id).map((d) => [d.entity_id, d.unique_id])
+    );
     if (uidMap.size > 0) {
-      entities = entities.map((e) => uidMap.has(e.entity_id) ? { ...e, unique_id: uidMap.get(e.entity_id) } : e);
+      entities = entities.map(
+        (e) => uidMap.has(e.entity_id) ? { ...e, unique_id: uidMap.get(e.entity_id) } : e
+      );
     }
   }
   const numberedPorts = discoverPorts(entities);
@@ -537,10 +553,18 @@ function isSpeedEntity(id) {
 function classifyPortEntity(entity) {
   const id = lower(entity.entity_id);
   const eid = entity.entity_id;
-  if (eid.startsWith("button.") && (id.includes("power_cycle") || id.includes("_restart") || id.includes("_reboot"))) return "power_cycle_entity";
-  if (eid.startsWith("switch.") && id.includes("_port_") && id.endsWith("_poe")) return "poe_switch_entity";
-  if (eid.startsWith("switch.") && id.includes("_port_") && !id.endsWith("_poe")) return "port_switch_entity";
-  if (eid.startsWith("binary_sensor.") && id.includes("_port_")) return "link_entity";
+  if (eid.startsWith("button.") && (id.includes("power_cycle") || id.includes("_restart") || id.includes("_reboot"))) {
+    return "power_cycle_entity";
+  }
+  if (eid.startsWith("switch.") && id.includes("_port_") && id.endsWith("_poe")) {
+    return "poe_switch_entity";
+  }
+  if (eid.startsWith("switch.") && id.includes("_port_") && !id.endsWith("_poe")) {
+    return "port_switch_entity";
+  }
+  if (eid.startsWith("binary_sensor.") && id.includes("_port_")) {
+    return "link_entity";
+  }
   if (eid.startsWith("sensor.") && id.includes("_port_")) {
     if (id.endsWith("_rx") || id.includes("_rx_")) return "rx_entity";
     if (id.endsWith("_tx") || id.includes("_tx_")) return "tx_entity";
@@ -548,15 +572,22 @@ function classifyPortEntity(entity) {
   if (eid.startsWith("sensor.") && isThroughputEntity(id)) return null;
   if (eid.startsWith("sensor.") && isSpeedEntity(id)) return "speed_entity";
   if (eid.startsWith("sensor.") && id.includes("_port_") && id.includes("_poe_power")) return "poe_power_entity";
-  if (eid.startsWith("sensor.") && id.includes("_port_") && (id.includes("_link") || id.includes("_status") || id.includes("_state")) && !isThroughputEntity(id)) return "link_entity";
+  if (eid.startsWith("sensor.") && id.includes("_port_") && (id.includes("_link") || id.includes("_status") || id.includes("_state")) && !isThroughputEntity(id)) {
+    return "link_entity";
+  }
   return null;
 }
 function detectSpecialPortKey(entity) {
   const text = entityText(entity);
   const id = lower(entity.entity_id);
+  if (id.includes("_wan_port") || id.includes("wan_port")) return { key: "wan", label: "WAN" };
   if (text.includes("wan 2") || id.includes("wan2")) return { key: "wan2", label: "WAN 2" };
-  if ((text.includes("wan") || id.includes("wan")) && (text.includes("sfp") || id.includes("sfp"))) return { key: "sfp_wan", label: "WAN SFP+" };
-  if ((text.includes("lan") || id.includes("lan")) && (text.includes("sfp") || id.includes("sfp"))) return { key: "sfp_lan", label: "LAN SFP+" };
+  if ((text.includes("wan") || id.includes("wan")) && (text.includes("sfp") || id.includes("sfp"))) {
+    return { key: "sfp_wan", label: "WAN SFP+" };
+  }
+  if ((text.includes("lan") || id.includes("lan")) && (text.includes("sfp") || id.includes("sfp"))) {
+    return { key: "sfp_lan", label: "LAN SFP+" };
+  }
   if (id.endsWith("_wan_port") || id.endsWith("_wan")) return { key: "wan", label: "WAN" };
   if (text.includes("wan") || id.includes("_wan_")) return { key: "wan", label: "WAN" };
   if (text.includes("sfp+") || text.includes("sfp") || id.includes("sfp")) return { key: "sfp", label: "SFP" };
@@ -674,6 +705,44 @@ function mergeSpecialsWithLayout(layout, discoveredSpecials, discoveredPorts = [
 function stateObj(hass, entityId) {
   return entityId ? hass.states[entityId] || null : null;
 }
+function numericState(hass, entityId) {
+  const state = stateObj(hass, entityId);
+  if (!state) return null;
+  const raw = String(state.state ?? "").replace(",", ".");
+  if (raw === "unknown" || raw === "unavailable" || raw === "") return null;
+  const num = parseFloat(raw);
+  return Number.isNaN(num) ? null : num;
+}
+function hasAvailableState(hass, entityId) {
+  const state = stateObj(hass, entityId);
+  if (!state) return false;
+  const v = String(state.state ?? "").toLowerCase();
+  return v !== "unknown" && v !== "unavailable" && v !== "";
+}
+function isPoeSwitchOn(hass, port) {
+  const state = stateObj(hass, port?.poe_switch_entity);
+  if (!state) return false;
+  return String(state.state ?? "").toLowerCase() === "on";
+}
+function getTrafficStatus(hass, port) {
+  const ids = [port?.rx_entity, port?.tx_entity].filter(Boolean);
+  if (!ids.length) return "none";
+  let sawNumeric = false;
+  for (const entityId of ids) {
+    const value = numericState(hass, entityId);
+    if (value == null) continue;
+    sawNumeric = true;
+    if (value > 0) return "positive";
+  }
+  if (sawNumeric) return "zero";
+  return "unknown";
+}
+function powerCycleIndicatesLink(hass, port) {
+  if (!port?.power_cycle_entity) return false;
+  if (!port?.poe_switch_entity) return false;
+  if (!isPoeSwitchOn(hass, port)) return false;
+  return hasAvailableState(hass, port.power_cycle_entity);
+}
 function getPoeStatus(hass, port) {
   const hasPoe = Boolean(port?.poe_switch_entity || port?.poe_power_entity);
   if (!hasPoe) {
@@ -689,18 +758,17 @@ function getPoeStatus(hass, port) {
   if (poeSwitch && switchVal !== "unknown" && switchVal !== "unavailable") {
     return {
       hasPoe: true,
-      poeOn: isOn(hass, port.poe_switch_entity),
+      poeOn: switchVal === "on",
       poeText: String(poeSwitch.state),
       canToggle: Boolean(port?.poe_switch_entity)
     };
   }
-  const poePower = stateObj(hass, port?.poe_power_entity);
-  const powerNum = parseFloat(String(poePower?.state ?? "").replace(",", "."));
-  if (!Number.isNaN(powerNum)) {
+  const poePower = numericState(hass, port?.poe_power_entity);
+  if (poePower != null) {
     return {
       hasPoe: true,
-      poeOn: powerNum > 0,
-      poeText: powerNum > 0 ? "on" : "off",
+      poeOn: poePower > 0,
+      poeText: poePower > 0 ? "on" : "off",
       canToggle: false
     };
   }
@@ -720,28 +788,15 @@ function isOn(hass, entityId, port = null) {
       if (["off", "disconnected", "false"].includes(v)) return false;
     }
   }
+  const traffic = getTrafficStatus(hass, port);
+  if (traffic === "positive") return true;
+  if (powerCycleIndicatesLink(hass, port)) return true;
   const isSpecial = port?.kind === "special";
-  const hasTraffic = port?.rx_entity || port?.tx_entity;
-  if (!isSpecial || !hasTraffic) {
-    if (port?.speed_entity) {
-      const s = stateObj(hass, port.speed_entity);
-      if (s && !isNaN(parseFloat(s.state)) && parseFloat(s.state) > 0) return true;
-    }
+  if (!isSpecial || traffic === "none" || traffic === "unknown") {
+    const speed = numericState(hass, port?.speed_entity);
+    if (speed != null && speed > 0) return true;
   }
-  if (port?.poe_power_entity) {
-    const s = stateObj(hass, port.poe_power_entity);
-    if (s && !isNaN(parseFloat(s.state)) && parseFloat(s.state) > 0) return true;
-  }
-  for (const eid of [port?.rx_entity, port?.tx_entity]) {
-    if (eid) {
-      const s = stateObj(hass, eid);
-      if (s && !isNaN(parseFloat(s.state)) && parseFloat(s.state) > 0) return true;
-    }
-  }
-  if (port?.port_switch_entity) {
-    const s = stateObj(hass, port.port_switch_entity);
-    if (s && String(s.state).toLowerCase() === "on") return true;
-  }
+  if (traffic === "zero") return false;
   return false;
 }
 function formatState(hass, entityId, fallback = "\u2014") {
@@ -750,7 +805,7 @@ function formatState(hass, entityId, fallback = "\u2014") {
   const unit = state.attributes?.unit_of_measurement || "";
   if (state.state === "unknown" || state.state === "unavailable") return "\u2014";
   const num = parseFloat(state.state);
-  if (!isNaN(num)) {
+  if (!Number.isNaN(num)) {
     const rounded = num % 1 === 0 ? String(num) : num.toFixed(2);
     return unit ? `${rounded} ${unit}` : rounded;
   }
@@ -767,26 +822,19 @@ function getPortLinkText(hass, port) {
     if (!st) continue;
     const value = String(st.state ?? "");
     const id = lower(entityId);
-    if (isLikelyLinkStateValue(value) && !id.includes("poe") && !id.includes("power") && !id.includes("speed")) return value;
+    if (isLikelyLinkStateValue(value) && !id.includes("poe") && !id.includes("power") && !id.includes("speed")) {
+      return value;
+    }
   }
+  const traffic = getTrafficStatus(hass, port);
+  if (traffic === "positive") return "connected";
+  if (powerCycleIndicatesLink(hass, port)) return "connected";
   const isSpecial = port?.kind === "special";
-  const hasTraffic = port?.rx_entity || port?.tx_entity;
-  if (!isSpecial || !hasTraffic) {
-    if (port?.speed_entity) {
-      const s = stateObj(hass, port.speed_entity);
-      if (s && !isNaN(parseFloat(s.state)) && parseFloat(s.state) > 0) return "connected";
-    }
+  if (!isSpecial || traffic === "none" || traffic === "unknown") {
+    const speed = numericState(hass, port?.speed_entity);
+    if (speed != null && speed > 0) return "connected";
   }
-  if (port?.poe_power_entity) {
-    const s = stateObj(hass, port.poe_power_entity);
-    if (s && !isNaN(parseFloat(s.state)) && parseFloat(s.state) > 0) return "connected";
-  }
-  for (const eid of [port?.rx_entity, port?.tx_entity]) {
-    if (eid) {
-      const s = stateObj(hass, eid);
-      if (s && !isNaN(parseFloat(s.state)) && parseFloat(s.state) > 0) return "connected";
-    }
-  }
+  if (traffic === "zero") return "no link";
   return "\u2014";
 }
 function simplifySpeed(value, unit = "") {
@@ -1129,7 +1177,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.c6fbaf2";
+var VERSION = "0.0.0-dev.c40eb74";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
