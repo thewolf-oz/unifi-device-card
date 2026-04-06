@@ -239,8 +239,8 @@ export const MODEL_REGISTRY = {
   US48PRO: {
     kind: "switch",
     frontStyle: "quad-row",
-    rows: [oddRange(1, 24), evenRange(1, 24),oddRange(25, 48), evenRange(25, 48)],
-    portCount: 48,
+    rows: [oddRange(1, 24), evenRange(1, 24),oddRange(25, 48), evenRange(25, 48), range(49,52)],
+    portCount: 52,
     displayModel: "USW Pro 48 PoE",
     theme: "silver",
     specialSlots: [
