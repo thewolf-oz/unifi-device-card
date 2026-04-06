@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.a614dd0 */
+/* UniFi Device Card 0.0.0-dev.f049547 */
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __esm = (fn, res) => function __init() {
@@ -300,7 +300,7 @@ var init_model_registry = __esm({
         displayModel: "Cloud Gateway Fiber",
         theme: "white",
         specialSlots: [
-          { key: "port_5", label: "WAN", port: 5 },
+          { key: "wan", label: "WAN", port: 5 },
           { key: "sfp_1", label: "SFP+ 1", port: 6 },
           { key: "sfp_2", label: "SFP+ 2", port: 7 }
         ]
@@ -317,7 +317,7 @@ var init_model_registry = __esm({
         displayModel: "Dream Router",
         theme: "white",
         specialSlots: [
-          { key: "port_5", label: "WAN", port: 5 }
+          { key: "wan", label: "WAN", port: 5 }
         ]
       },
       UDMPRO: {
@@ -351,10 +351,10 @@ var init_model_registry = __esm({
         kind: "switch",
         frontStyle: "ultra-row",
         rows: [range(1, 7)],
-        portCount: 7,
+        portCount: 8,
         displayModel: "USW Ultra",
         theme: "white",
-        specialSlots: [{ key: "uplink", label: "Uplink" }]
+        specialSlots: [{ key: "uplink", label: "Uplink", port: 8 }]
       },
       USWULTRA60W: {
         kind: "switch",
@@ -1869,7 +1869,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.a614dd0";
+var VERSION = "0.0.0-dev.f049547";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
