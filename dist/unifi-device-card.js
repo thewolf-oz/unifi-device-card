@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.1226f78 */
+/* UniFi Device Card 0.0.0-dev.9513d0b */
 
 // src/model-registry.js
 function range(start, end) {
@@ -215,8 +215,8 @@ var MODEL_REGISTRY = {
   US48PRO: {
     kind: "switch",
     frontStyle: "quad-row",
-    rows: [oddRange(1, 24), evenRange(1, 24), oddRange(25, 48), evenRange(25, 48)],
-    portCount: 48,
+    rows: [oddRange(1, 24), evenRange(1, 24), oddRange(25, 48), evenRange(25, 48), range(49, 52)],
+    portCount: 52,
     displayModel: "USW Pro 48 PoE",
     theme: "silver",
     specialSlots: [
@@ -1159,7 +1159,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.1226f78";
+var VERSION = "0.0.0-dev.9513d0b";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
