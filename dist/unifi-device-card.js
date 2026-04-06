@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.2a2aa1b */
+/* UniFi Device Card 0.0.0-dev.cc2ffae */
 
 // src/model-registry.js
 function range(start, end) {
@@ -1464,7 +1464,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.2a2aa1b";
+var VERSION = "0.0.0-dev.cc2ffae";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
@@ -1522,7 +1522,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     return translated === key ? raw : translated;
   }
   _cardBgStyle() {
-    return this._config?.background_color || "var(--card-background-color)";
+    return this._config?.background_color || "";
   }
   async _ensureLoaded() {
     if (!this._hass || !this._config?.device_id) return;
@@ -1598,7 +1598,7 @@ var UnifiDeviceCard = class extends HTMLElement {
 
       ha-card {
         background: var(--udc-card-bg, var(--card-background-color)) !important;
-        color: var(--udc-text) !important;
+        color: var(--primary-text-color, var(--udc-text)) !important;
         border: var(--ha-card-border-width, 1px) solid var(--ha-card-border-color, var(--udc-border)) !important;
         border-radius: var(--ha-card-border-radius, var(--udc-r)) !important;
         box-shadow: var(--ha-card-box-shadow, none);
@@ -2185,7 +2185,7 @@ var UnifiDeviceCard = class extends HTMLElement {
         </div>`;
     }
     this.shadowRoot.innerHTML = `${this._styles()}
-      <ha-card style="--udc-card-bg: ${this._cardBgStyle()}">
+      <ha-card ${this._cardBgStyle() ? `style="--udc-card-bg: ${this._cardBgStyle()}"` : ""}>
         <div class="header">
           <div class="header-info">
             <div class="title">${title}</div>
@@ -2211,7 +2211,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     const title = this._config?.name || "UniFi Device Card";
     if (!this._config?.device_id) {
       this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card style="--udc-card-bg: ${this._cardBgStyle()}">
+        <ha-card ${this._cardBgStyle() ? `style="--udc-card-bg: ${this._cardBgStyle()}"` : ""}>
           <div class="header">
             <div class="header-info">
               <div class="title">${title}</div>
@@ -2224,7 +2224,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     }
     if (this._loading) {
       this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card style="--udc-card-bg: ${this._cardBgStyle()}">
+        <ha-card ${this._cardBgStyle() ? `style="--udc-card-bg: ${this._cardBgStyle()}"` : ""}>
           <div class="header">
             <div class="header-info">
               <div class="title">${title}</div>
@@ -2237,7 +2237,7 @@ var UnifiDeviceCard = class extends HTMLElement {
     }
     if (!this._ctx) {
       this.shadowRoot.innerHTML = `${this._styles()}
-        <ha-card style="--udc-card-bg: ${this._cardBgStyle()}">
+        <ha-card ${this._cardBgStyle() ? `style="--udc-card-bg: ${this._cardBgStyle()}"` : ""}>
           <div class="header">
             <div class="header-info">
               <div class="title">${title}</div>
