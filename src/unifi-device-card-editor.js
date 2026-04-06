@@ -32,6 +32,7 @@ class UnifiDeviceCardEditor extends HTMLElement {
     this._error   = "";
     const token   = ++this._loadToken;
     this._render();
+
     try {
       const devices = await getUnifiDevices(this._hass);
       if (token !== this._loadToken) return;
@@ -51,7 +52,9 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
   _dispatch(config) {
     this.dispatchEvent(new CustomEvent("config-changed", {
-      detail: { config }, bubbles: true, composed: true,
+      detail: { config },
+      bubbles: true,
+      composed: true,
     }));
   }
 
@@ -65,13 +68,16 @@ class UnifiDeviceCardEditor extends HTMLElement {
     const oldAutoName = this._selectedDeviceName(oldDeviceId);
     const newAutoName = this._selectedDeviceName(newDeviceId);
     const next        = { ...this._config };
+
     if (newDeviceId) next.device_id = newDeviceId;
     else delete next.device_id;
+
     const currentName = String(next.name || "").trim();
     if (!currentName || currentName === oldAutoName) {
       if (newAutoName) next.name = newAutoName;
       else delete next.name;
     }
+
     this._config = next;
     this._dispatch(next);
     this._render();
@@ -167,9 +173,9 @@ class UnifiDeviceCardEditor extends HTMLElement {
     this.shadowRoot.getElementById("device")
       ?.addEventListener("change", (e) => this._onDeviceChange(e));
     this.shadowRoot.getElementById("name")
-      ?.addEventListener("input",  (e) => this._onNameInput(e));
+      ?.addEventListener("input", (e) => this._onNameInput(e));
     this.shadowRoot.getElementById("background_color")
-      ?.addEventListener("input",  (e) => this._onBackgroundInput(e));
+      ?.addEventListener("input", (e) => this._onBackgroundInput(e));
   }
 }
 
