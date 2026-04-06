@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.cc2ffae */
+/* UniFi Device Card 0.0.0-dev.e3cbfa6 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -1217,6 +1217,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     this._entityHint = null;
     this._entityHintLoading = false;
     this._entityHintToken = 0;
+    this._rendered = false;
   }
   setConfig(config) {
     this._config = config || {};
@@ -1225,7 +1226,11 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     } else {
       this._entityHint = null;
     }
-    this._render();
+    if (this._rendered) {
+      this._patchFields();
+    } else {
+      this._render();
+    }
   }
   set hass(hass) {
     this._hass = hass;
@@ -1319,6 +1324,24 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
     else delete next.background_color;
     this._config = next;
     this._dispatch(next);
+  }
+  /**
+   * Lightweight DOM patch: update only the values of existing input/select
+   * elements without rebuilding the entire shadow DOM. This preserves focus
+   * and cursor position while still keeping the displayed values in sync with
+   * the latest config (e.g. after HA calls setConfig from the outside).
+   */
+  _patchFields() {
+    const root = this.shadowRoot;
+    if (!root) return;
+    const nameEl = root.getElementById("name");
+    const bgEl = root.getElementById("background_color");
+    if (nameEl && document.activeElement !== nameEl) {
+      nameEl.value = this._config?.name || "";
+    }
+    if (bgEl && document.activeElement !== bgEl) {
+      bgEl.value = this._config?.background_color || "";
+    }
   }
   _renderEntityWarning() {
     if (this._entityHintLoading) {
@@ -1456,6 +1479,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
         ${!this._loading && !this._devices.length && !this._error ? `<div class="hint">${this._t("editor_no_devices")}</div>` : !this._loading ? `<div class="hint">${this._t("editor_hint")}</div>` : ""}
       </div>
     `;
+    this._rendered = true;
     this.shadowRoot.getElementById("device")?.addEventListener("change", (e) => this._onDeviceChange(e));
     this.shadowRoot.getElementById("name")?.addEventListener("input", (e) => this._onNameInput(e));
     this.shadowRoot.getElementById("background_color")?.addEventListener("input", (e) => this._onBackgroundInput(e));
@@ -1464,7 +1488,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.cc2ffae";
+var VERSION = "0.0.0-dev.e3cbfa6";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
