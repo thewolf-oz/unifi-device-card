@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.a068519 */
+/* UniFi Device Card 0.0.0-dev.9fa8179 */
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __esm = (fn, res) => function __init() {
@@ -92,6 +92,7 @@ function resolveModelKey(device) {
     if (candidate.includes("USM8P")) return "USWULTRA";
     if (candidate.includes("USW24")) return "USW24P";
     if (candidate.includes("USW48")) return "USW48P";
+    if (candidate.includes("USW48P")) return "USW48P";
   }
   return null;
 }
@@ -229,11 +230,16 @@ var init_model_registry = __esm({
       USW48P: {
         kind: "switch",
         frontStyle: "quad-row",
-        rows: [range(1, 12), range(13, 24), range(25, 36), range(37, 48)],
+        rows: [oddRange(1, 24), evenRange(1, 24), oddRange(25, 48), evenRange(25, 48)],
         portCount: 48,
         displayModel: "USW 48 PoE",
         theme: "silver",
-        specialSlots: []
+        specialSlots: [
+          { key: "sfp_1", label: "SFP 1", port: 49 },
+          { key: "sfp_2", label: "SFP 2", port: 50 },
+          { key: "sfp_3", label: "SFP 3", port: 51 },
+          { key: "sfp_4", label: "SFP 4", port: 52 }
+        ]
       },
       US48PRO: {
         kind: "switch",
@@ -1869,7 +1875,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.a068519";
+var VERSION = "0.0.0-dev.9fa8179";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
