@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.4b27c6a */
+/* UniFi Device Card 0.0.0-dev.9060596 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -95,15 +95,6 @@ var MODEL_REGISTRY = {
     theme: "white",
     specialSlots: []
   },
-  USL8LPB: {
-    kind: "switch",
-    frontStyle: "single-row",
-    rows: [range(1, 8)],
-    portCount: 8,
-    displayModel: "USW Lite 8 PoE",
-    theme: "white",
-    specialSlots: []
-  },
   USL16LP: {
     kind: "switch",
     frontStyle: "dual-row",
@@ -140,28 +131,10 @@ var MODEL_REGISTRY = {
     theme: "white",
     specialSlots: []
   },
-  UCGULTRA: {
-    kind: "gateway",
-    frontStyle: "gateway-single-row",
-    rows: [range(1, 5)],
-    portCount: 5,
-    displayModel: "Cloud Gateway Ultra",
-    theme: "white",
-    specialSlots: []
-  },
-  UCGMAX: {
-    kind: "gateway",
-    frontStyle: "gateway-single-row",
-    rows: [[1, 2, 3, 4, 5]],
-    portCount: 5,
-    displayModel: "Cloud Gateway Max",
-    theme: "white",
-    specialSlots: [{ key: "wan", label: "WAN" }]
-  },
   UDMA6A8: {
     kind: "gateway",
     frontStyle: "gateway-single-row",
-    rows: [range(1, 5)],
+    rows: [range(1, 7)],
     portCount: 7,
     displayModel: "Cloud Gateway Fiber",
     theme: "white",
@@ -219,12 +192,7 @@ var MODEL_REGISTRY = {
     portCount: 52,
     displayModel: "USW Pro 48 PoE",
     theme: "silver",
-    specialSlots: [
-      { key: "sfp+", label: "SFP+ 1" },
-      { key: "sfp+", label: "SFP+ 2" },
-      { key: "sfp+", label: "SFP+ 3" },
-      { key: "sfp+", label: "SFP+ 4" }
-    ]
+    specialSlots: []
   },
   // ── USW Ultra family ─────────────────────────────────────────────────────
   // 7 PoE+ output ports on the front (ports 1–7), white enclosure.
@@ -325,8 +293,9 @@ function inferPortCountFromModel(device) {
   if (text.includes("US8")) return 8;
   if (text.includes("USMINI")) return 5;
   if (text.includes("FLEXMINI")) return 5;
-  if (text.includes("UCGULTRA")) return 4;
-  if (text.includes("CLOUDGATEWAYULTRA")) return 4;
+  if (text.includes("UCGULTRA")) return 5;
+  if (text.includes("CLOUDGATEWAYULTRA")) return 5;
+  if (text.includes("UDR")) return 5;
   if (text.includes("UDRULT")) return 5;
   if (text.includes("UCGMAX")) return 5;
   if (text.includes("UDMPRO")) return 8;
@@ -1159,7 +1128,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.4b27c6a";
+var VERSION = "0.0.0-dev.9060596";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
