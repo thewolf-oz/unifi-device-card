@@ -4,6 +4,86 @@ import {
 } from "./helpers.js";
 import { t } from "./translations.js";
 
+// ─── Port type detection helpers ─────────────────────────────────────────────
+
+/**
+ * Determine the port type badge for the WAN port selector dropdown.
+ * Returns one of: "wan" | "sfp_wan" | "sfp" | "lan"
+ *
+ * Priority:
+ *  1. Slot key starts with "wan"     → default WAN port
+ *  2. Slot key contains "sfp_wan"    → SFP used as WAN
+ *  3. Slot key contains "sfp"        → SFP (could be used as WAN)
+ *  4. Otherwise                      → LAN port
+ */
+function slotPortType(slot) {
+  const key = String(slot.key || "").toLowerCase();
+  if (key === "wan" || key === "wan2") return "wan";
+  if (key.includes("sfp_wan") || key.includes("wan_sfp")) return "sfp_wan";
+  if (key.includes("sfp")) return "sfp";
+  return "lan";
+}
+
+/**
+ * Build the human-readable label for a slot in the WAN port dropdown.
+ * Format: "WAN (Port 5)" / "SFP+ 1 — SFP (Port 10)" / "Port 3 — LAN"
+ */
+function slotDropdownLabel(slot, tFn) {
+  const type = slotPortType(slot);
+  const portNum = slot.port != null ? ` (Port ${slot.port})` : "";
+
+  switch (type) {
+    case "wan":
+      return `${slot.label}${portNum}`;
+    case "sfp_wan":
+      return `${slot.label}${portNum} — ${tFn("editor_wan_port_sfpwan")}`;
+    case "sfp":
+      return `${slot.label}${portNum} — ${tFn("editor_wan_port_sfp")}`;
+    default:
+      return `${slot.label}${portNum} — ${tFn("editor_wan_port_lan")}`;
+  }
+}
+
+/**
+ * Build the list of all selectable port options for the WAN dropdown.
+ * Includes all specialSlots (WAN, SFP) AND all numbered LAN ports.
+ * The value stored in config is the slot key (for specials) or "port_N" (for numbered).
+ */
+function buildWanPortOptions(layout, tFn) {
+  const options = [];
+
+  // Default / auto option
+  options.push({ value: "auto", label: tFn("editor_wan_port_auto") });
+
+  if (!layout) return options;
+
+  // Special slots first (WAN, SFP, etc.)
+  for (const slot of layout.specialSlots || []) {
+    const type = slotPortType(slot);
+    options.push({
+      value: slot.key,
+      label: slotDropdownLabel(slot, tFn),
+      type,
+    });
+  }
+
+  // Numbered LAN ports (rows are arrays of port numbers)
+  const specialPortNums = new Set(
+    (layout.specialSlots || []).map((s) => s.port).filter((p) => p != null)
+  );
+  const allPortNums = (layout.rows || []).flat();
+  for (const portNum of allPortNums) {
+    if (specialPortNums.has(portNum)) continue;
+    options.push({
+      value: `port_${portNum}`,
+      label: `Port ${portNum} — ${tFn("editor_wan_port_lan")}`,
+      type: "lan",
+    });
+  }
+
+  return options;
+}
+
 class UnifiDeviceCardEditor extends HTMLElement {
   constructor() {
     super();
@@ -19,14 +99,20 @@ class UnifiDeviceCardEditor extends HTMLElement {
     this._entityHintLoading = false;
     this._entityHintToken = 0;
     this._rendered = false;
+    // Context of the currently selected device (type + layout)
+    this._deviceCtx = null;
+    this._deviceCtxLoading = false;
+    this._deviceCtxToken = 0;
   }
 
   setConfig(config) {
     this._config = config || {};
     if (this._hass && this._config?.device_id) {
       this._loadEntityHint(this._config.device_id);
+      this._loadDeviceCtx(this._config.device_id);
     } else {
       this._entityHint = null;
+      this._deviceCtx = null;
     }
     // DOM already exists → patch only field values, never rebuild
     if (this._rendered) {
@@ -39,15 +125,15 @@ class UnifiDeviceCardEditor extends HTMLElement {
   set hass(hass) {
     this._hass = hass;
     if (!this._loaded && !this._loading) this._loadDevices();
-    if (this._config?.device_id) this._loadEntityHint(this._config.device_id);
+    if (this._config?.device_id) {
+      this._loadEntityHint(this._config.device_id);
+      this._loadDeviceCtx(this._config.device_id);
+    }
   }
 
   _t(key) { return t(this._hass, key); }
 
   // ─── Smart render helper ───────────────────────────────────────────────────
-  // After the first full render we never rebuild the whole shadow DOM again.
-  // Instead we patch only the parts that actually changed — except when the
-  // DOM structure itself must change (e.g. loading hint ↔ device select).
   _smartRender() {
     const root = this.shadowRoot;
     const hasDeviceSelect = !!root?.getElementById("device");
@@ -113,6 +199,38 @@ class UnifiDeviceCardEditor extends HTMLElement {
     this._smartRender();
   }
 
+  /**
+   * Load the device type and layout for the selected device so we know
+   * whether to show the WAN port selector (gateway only) and which ports
+   * to offer.
+   */
+  async _loadDeviceCtx(deviceId) {
+    if (!this._hass || !deviceId) {
+      this._deviceCtx = null;
+      this._deviceCtxLoading = false;
+      return;
+    }
+
+    const token = ++this._deviceCtxToken;
+    this._deviceCtxLoading = true;
+
+    try {
+      // We only need device type + layout — reuse the same WS call via helpers
+      const { getDeviceContext } = await import("./helpers.js");
+      const ctx = await getDeviceContext(this._hass, deviceId);
+      if (token !== this._deviceCtxToken) return;
+      this._deviceCtx = ctx;
+    } catch (err) {
+      console.warn("[unifi-device-card] Failed to load device ctx for editor", err);
+      if (token !== this._deviceCtxToken) return;
+      this._deviceCtx = null;
+    }
+
+    this._deviceCtxLoading = false;
+    // WAN selector is structural — needs a full re-render when ctx changes
+    this._render();
+  }
+
   // ─── Event dispatching ────────────────────────────────────────────────────
   _dispatch(config) {
     this.dispatchEvent(new CustomEvent("config-changed", {
@@ -143,9 +261,15 @@ class UnifiDeviceCardEditor extends HTMLElement {
       else delete next.name;
     }
 
+    // Reset WAN port when device changes — the previous selection may not
+    // exist on the newly chosen device.
+    delete next.wan_port;
+
     this._config = next;
     this._dispatch(next);
     this._loadEntityHint(newDeviceId);
+    this._deviceCtx = null;
+    this._loadDeviceCtx(newDeviceId);
     // Device change needs a full re-render (select options must reflect new state)
     this._render();
   }
@@ -164,6 +288,19 @@ class UnifiDeviceCardEditor extends HTMLElement {
     this._config = next;
     this._dispatch(next);
     // No _render() – focus preserved
+  }
+
+  _onWanPortChange(ev) {
+    const value = ev.target.value || "auto";
+    const next = { ...this._config };
+    if (value && value !== "auto") {
+      next.wan_port = value;
+    } else {
+      delete next.wan_port;
+    }
+    this._config = next;
+    this._dispatch(next);
+    // No _render() – focus preserved via patchFields
   }
 
   // ─── DOM patch helpers ────────────────────────────────────────────────────
@@ -193,6 +330,12 @@ class UnifiDeviceCardEditor extends HTMLElement {
     const selEl = root.getElementById("device");
     if (selEl && selEl !== active) {
       selEl.value = this._config?.device_id || "";
+    }
+
+    // Re-sync WAN port select if present
+    const wanEl = root.getElementById("wan_port");
+    if (wanEl && wanEl !== active) {
+      wanEl.value = this._config?.wan_port || "auto";
     }
   }
 
@@ -252,12 +395,62 @@ class UnifiDeviceCardEditor extends HTMLElement {
     `;
   }
 
+  // ─── WAN port selector renderer ───────────────────────────────────────────
+
+  /**
+   * Render the WAN port dropdown.
+   * Only shown when:
+   *   1. A device is selected
+   *   2. The device type is "gateway"
+   *   3. The layout has at least one slot (so there is something to choose from)
+   */
+  _renderWanPortSelector() {
+    if (!this._config?.device_id) return "";
+
+    // While ctx is loading show a subtle loading hint
+    if (this._deviceCtxLoading) {
+      return `
+        <div class="field">
+          <label>${this._t("editor_wan_port_label")}</label>
+          <div class="hint">${this._t("editor_device_loading")}</div>
+        </div>
+      `;
+    }
+
+    const ctx = this._deviceCtx;
+    // Only show for gateways
+    if (!ctx || ctx.type !== "gateway") return "";
+
+    const layout = ctx.layout;
+    const options = buildWanPortOptions(layout, (k) => this._t(k));
+
+    // If there's only the "auto" option (no ports discovered) skip rendering
+    if (options.length <= 1) return "";
+
+    const currentVal = this._config?.wan_port || "auto";
+
+    const optionHtml = options.map((o) => {
+      const sel = o.value === currentVal ? " selected" : "";
+      return `<option value="${o.value}"${sel}>${o.label}</option>`;
+    }).join("");
+
+    return `
+      <div class="field">
+        <label for="wan_port">${this._t("editor_wan_port_label")}</label>
+        <select id="wan_port">
+          ${optionHtml}
+        </select>
+        <div class="hint">${this._t("editor_wan_port_hint")}</div>
+      </div>
+    `;
+  }
+
   // ─── Full render (first time only / device change) ────────────────────────
   _render() {
     const cfg = this._config;
-    const selId = cfg?.device_id || "";
+    const selId  = cfg?.device_id || "";
     const selName = String(cfg?.name || "").replace(/"/g, "&quot;");
-    const selBg = String(cfg?.background_color || "").replace(/"/g, "&quot;");
+    const selBg   = String(cfg?.background_color || "").replace(/"/g, "&quot;");
 
     const options = this._devices
       .map((d) => `<option value="${d.id}" ${d.id === selId ? "selected" : ""}>${d.label}</option>`)
@@ -330,6 +523,8 @@ class UnifiDeviceCardEditor extends HTMLElement {
                </select>`}
         </div>
 
+        ${this._renderWanPortSelector()}
+
         <div class="field">
           <label for="name">${this._t("editor_name_label")}</label>
           <input
@@ -366,6 +561,8 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
     this.shadowRoot.getElementById("device")
       ?.addEventListener("change", (e) => this._onDeviceChange(e));
+    this.shadowRoot.getElementById("wan_port")
+      ?.addEventListener("change", (e) => this._onWanPortChange(e));
     this.shadowRoot.getElementById("name")
       ?.addEventListener("input", (e) => this._onNameInput(e));
     this.shadowRoot.getElementById("background_color")
