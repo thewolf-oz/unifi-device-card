@@ -251,6 +251,8 @@ class UnifiDeviceCard extends HTMLElement {
 
       /* LED states */
       .port.up          .port-led-link  { background: var(--udc-green); }
+      .port.speed-10000 .port-led-link  { background: #1560bd; }
+      .port.speed-2500  .port-led-link  { background: #1e90ff; }
       .port.speed-100   .port-led-link  { background: var(--udc-orange); }
       .port.speed-low   .port-led-link  { background: #7a5c10; }
       .port.poe-on      .port-led-poe   { background: var(--udc-orange); }
@@ -342,6 +344,8 @@ class UnifiDeviceCard extends HTMLElement {
     if (linkUp) {
       const spd = getPortSpeedText(this._hass, slot);
       if (spd.includes("100") && !spd.includes("1000")) speedClass = "speed-100";
+      else if (spd.includes("10000")) speedClass = "speed-10000";
+      else if (spd.includes("2500")) speedClass = "speed-2500";
       else if (spd !== "—" && !spd.includes("1000") && !spd.includes("Gbit")) speedClass = "speed-low";
     }
 
