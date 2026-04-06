@@ -142,35 +142,34 @@ class UnifiDeviceCardEditor extends HTMLElement {
 
   _renderEntityWarning() {
     if (this._entityHintLoading) {
-      return `<div class="hint">Checking selected device for disabled or hidden UniFi entities…</div>`;
+      return `<div class="hint">${this._t("warning_checking")}</div>`;
     }
 
     const info = this._entityHint;
     if (!info || !info.total) return "";
 
     const lines = [];
-    if (info.counts.port_switch) lines.push(`<li>${info.counts.port_switch} port switch entit${info.counts.port_switch === 1 ? "y" : "ies"}</li>`);
-    if (info.counts.poe_switch) lines.push(`<li>${info.counts.poe_switch} PoE switch entit${info.counts.poe_switch === 1 ? "y" : "ies"}</li>`);
-    if (info.counts.poe_power) lines.push(`<li>${info.counts.poe_power} PoE power sensor${info.counts.poe_power === 1 ? "" : "s"}</li>`);
-    if (info.counts.link_speed) lines.push(`<li>${info.counts.link_speed} link speed sensor${info.counts.link_speed === 1 ? "" : "s"}</li>`);
-    if (info.counts.rx_tx) lines.push(`<li>${info.counts.rx_tx} RX/TX sensor${info.counts.rx_tx === 1 ? "" : "s"}</li>`);
-    if (info.counts.power_cycle) lines.push(`<li>${info.counts.power_cycle} power cycle button${info.counts.power_cycle === 1 ? "" : "s"}</li>`);
-    if (info.counts.link_entity) lines.push(`<li>${info.counts.link_entity} link entit${info.counts.link_entity === 1 ? "y" : "ies"}</li>`);
+    if (info.counts.port_switch) lines.push(`<li>${info.counts.port_switch} ${this._t("warning_entity_port_switch")}</li>`);
+    if (info.counts.poe_switch)  lines.push(`<li>${info.counts.poe_switch} ${this._t("warning_entity_poe_switch")}</li>`);
+    if (info.counts.poe_power)   lines.push(`<li>${info.counts.poe_power} ${this._t("warning_entity_poe_power")}</li>`);
+    if (info.counts.link_speed)  lines.push(`<li>${info.counts.link_speed} ${this._t("warning_entity_link_speed")}</li>`);
+    if (info.counts.rx_tx)       lines.push(`<li>${info.counts.rx_tx} ${this._t("warning_entity_rx_tx")}</li>`);
+    if (info.counts.power_cycle) lines.push(`<li>${info.counts.power_cycle} ${this._t("warning_entity_power_cycle")}</li>`);
+    if (info.counts.link_entity) lines.push(`<li>${info.counts.link_entity} ${this._t("warning_entity_link")}</li>`);
+
+    const statusText = this._t("warning_status")
+      .replace("{disabled}", `<strong>${info.disabled}</strong>`)
+      .replace("{hidden}",   `<strong>${info.hidden}</strong>`);
 
     return `
       <div class="warning">
-        <div class="warning-title">Disabled or hidden UniFi entities detected</div>
-        <div class="warning-text">
-          The selected device has relevant UniFi entities that are currently disabled or hidden.
-          This can lead to missing controls, incomplete telemetry, or incorrect port status in the card.
-        </div>
-        <div class="warning-text">
-          Status summary: <strong>${info.disabled}</strong> disabled, <strong>${info.hidden}</strong> hidden.
-        </div>
+        <div class="warning-title">${this._t("warning_title")}</div>
+        <div class="warning-text">${this._t("warning_body")}</div>
+        <div class="warning-text">${statusText}</div>
         ${lines.length ? `<ul class="warning-list">${lines.join("")}</ul>` : ""}
         <div class="warning-text">
-          Check in Home Assistant under:<br>
-          <strong>Settings → Devices &amp; Services → UniFi → Devices / Entities</strong>
+          ${this._t("warning_check_in")}<br>
+          <strong>${this._t("warning_ha_path")}</strong>
         </div>
       </div>
     `;
@@ -275,12 +274,12 @@ class UnifiDeviceCardEditor extends HTMLElement {
         </div>
 
         <div class="field">
-          <label for="background_color">Background color (optional)</label>
+          <label for="background_color">${this._t("editor_bg_label")}</label>
           <input
             id="background_color"
             type="text"
             value="${selBg}"
-            placeholder="Default: var(--card-background-color)"
+            placeholder="${this._t("editor_bg_hint")}"
           />
         </div>
 
