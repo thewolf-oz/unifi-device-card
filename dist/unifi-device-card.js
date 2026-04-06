@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.47f416e */
+/* UniFi Device Card 0.0.0-dev.c2a8311 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -604,7 +604,7 @@ function isThroughputEntity(id) {
 function isSpeedEntity(id) {
   return id.includes("_link_speed") || id.includes("_ethernet_speed") || id.includes("_negotiated_speed");
 }
-function classifyPortEntity(entity) {
+function classifyPortEntity(entity, isSpecial = false) {
   const id = lower(entity.entity_id);
   const eid = entity.entity_id;
   if (eid.startsWith("button.") && (id.includes("power_cycle") || id.includes("_restart") || id.includes("_reboot"))) {
@@ -616,18 +616,24 @@ function classifyPortEntity(entity) {
   if (eid.startsWith("switch.") && id.includes("_port_") && !id.endsWith("_poe")) {
     return "port_switch_entity";
   }
-  if (eid.startsWith("binary_sensor.") && id.includes("_port_")) {
-    return "link_entity";
+  if (eid.startsWith("binary_sensor.")) {
+    if (id.includes("_port_")) return "link_entity";
+    if (isSpecial && (id.includes("_wan") || id.includes("_sfp") || id.includes("_uplink") || id.includes("_connected") || id.includes("_link"))) return "link_entity";
   }
-  if (eid.startsWith("sensor.") && id.includes("_port_")) {
-    if (id.endsWith("_rx") || id.includes("_rx_")) return "rx_entity";
-    if (id.endsWith("_tx") || id.includes("_tx_")) return "tx_entity";
-  }
-  if (eid.startsWith("sensor.") && isThroughputEntity(id)) return null;
-  if (eid.startsWith("sensor.") && isSpeedEntity(id)) return "speed_entity";
-  if (eid.startsWith("sensor.") && id.includes("_port_") && id.includes("_poe_power")) return "poe_power_entity";
-  if (eid.startsWith("sensor.") && id.includes("_port_") && (id.includes("_link") || id.includes("_status") || id.includes("_state")) && !isThroughputEntity(id)) {
-    return "link_entity";
+  if (eid.startsWith("sensor.")) {
+    if (id.includes("_port_")) {
+      if (id.endsWith("_rx") || id.includes("_rx_")) return "rx_entity";
+      if (id.endsWith("_tx") || id.includes("_tx_")) return "tx_entity";
+    }
+    if (isSpecial && (id.includes("_wan") || id.includes("_sfp") || id.includes("_uplink"))) {
+      if (id.includes("download") || id.includes("_rx")) return "rx_entity";
+      if (id.includes("upload") || id.includes("_tx")) return "tx_entity";
+    }
+    if (isSpeedEntity(id)) return "speed_entity";
+    if (id.includes("_port_") && id.includes("_poe_power")) return "poe_power_entity";
+    if (id.includes("_port_") && (id.includes("_link") || id.includes("_status") || id.includes("_state")) && !isThroughputEntity(id)) {
+      return "link_entity";
+    }
   }
   return null;
 }
@@ -690,7 +696,7 @@ function discoverSpecialPorts(entities) {
     if (!special) continue;
     const row = ensureSpecialPort(specials, special.key, special.label);
     row.raw_entities.push(entity.entity_id);
-    const type = classifyPortEntity(entity);
+    const type = classifyPortEntity(entity, true);
     if (type && !row[type]) row[type] = entity.entity_id;
   }
   return Array.from(specials.values());
@@ -767,17 +773,6 @@ function numericState(hass, entityId) {
   const num = parseFloat(raw);
   return Number.isNaN(num) ? null : num;
 }
-function hasAvailableState(hass, entityId) {
-  const state = stateObj(hass, entityId);
-  if (!state) return false;
-  const v = String(state.state ?? "").toLowerCase();
-  return v !== "unknown" && v !== "unavailable" && v !== "";
-}
-function isPoeSwitchOn(hass, port) {
-  const state = stateObj(hass, port?.poe_switch_entity);
-  if (!state) return false;
-  return String(state.state ?? "").toLowerCase() === "on";
-}
 function getTrafficStatus(hass, port) {
   const ids = [port?.rx_entity, port?.tx_entity].filter(Boolean);
   if (!ids.length) return "none";
@@ -790,12 +785,6 @@ function getTrafficStatus(hass, port) {
   }
   if (sawNumeric) return "zero";
   return "unknown";
-}
-function powerCycleIndicatesLink(hass, port) {
-  if (!port?.power_cycle_entity) return false;
-  if (!port?.poe_switch_entity) return false;
-  if (!isPoeSwitchOn(hass, port)) return false;
-  return hasAvailableState(hass, port.power_cycle_entity);
 }
 function getPoeStatus(hass, port) {
   const hasPoe = Boolean(port?.poe_switch_entity || port?.poe_power_entity);
@@ -834,23 +823,33 @@ function getPoeStatus(hass, port) {
   };
 }
 function isOn(hass, entityId, port = null) {
+  const traffic = getTrafficStatus(hass, port);
+  const speed = numericState(hass, port?.speed_entity);
   if (entityId) {
     const state = stateObj(hass, entityId);
     if (state) {
       const v = String(state.state).toLowerCase();
-      if (["on", "connected", "up", "true", "active", "1"].includes(v)) return true;
+      if (["on", "connected", "up", "true", "active", "1"].includes(v)) {
+        const isSpecialPort = port?.kind === "special";
+        const hasSpeedData = speed != null;
+        const hasTrafficData = traffic !== "none" && traffic !== "unknown";
+        if (!isSpecialPort && (hasSpeedData || hasTrafficData)) {
+          const speedIsZero = hasSpeedData && speed === 0;
+          const trafficIsZero = hasTrafficData && traffic === "zero";
+          if (speedIsZero || trafficIsZero) return false;
+        }
+        return true;
+      }
       if (["off", "disconnected", "false"].includes(v)) return false;
     }
   }
-  const traffic = getTrafficStatus(hass, port);
   if (traffic === "positive") return true;
-  if (powerCycleIndicatesLink(hass, port)) return true;
+  if (traffic === "zero") return false;
   const isSpecial = port?.kind === "special";
   if (!isSpecial || traffic === "none" || traffic === "unknown") {
-    const speed = numericState(hass, port?.speed_entity);
     if (speed != null && speed > 0) return true;
+    if (speed != null && speed === 0) return false;
   }
-  if (traffic === "zero") return false;
   return false;
 }
 function formatState(hass, entityId, fallback = "\u2014") {
@@ -881,14 +880,14 @@ function getPortLinkText(hass, port) {
     }
   }
   const traffic = getTrafficStatus(hass, port);
+  const speed = numericState(hass, port?.speed_entity);
   if (traffic === "positive") return "connected";
-  if (powerCycleIndicatesLink(hass, port)) return "connected";
+  if (traffic === "zero") return "no link";
   const isSpecial = port?.kind === "special";
   if (!isSpecial || traffic === "none" || traffic === "unknown") {
-    const speed = numericState(hass, port?.speed_entity);
     if (speed != null && speed > 0) return "connected";
+    if (speed != null && speed === 0) return "no link";
   }
-  if (traffic === "zero") return "no link";
   return "\u2014";
 }
 function simplifySpeed(value, unit = "") {
@@ -1488,7 +1487,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.47f416e";
+var VERSION = "0.0.0-dev.c2a8311";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
