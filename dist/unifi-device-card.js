@@ -1,4 +1,4 @@
-/* UniFi Device Card 0.0.0-dev.da91fbb */
+/* UniFi Device Card 0.0.0-dev.83d5d22 */
 
 // src/model-registry.js
 function range(start, end) {
@@ -1116,7 +1116,7 @@ var UnifiDeviceCardEditor = class extends HTMLElement {
 customElements.define("unifi-device-card-editor", UnifiDeviceCardEditor);
 
 // src/unifi-device-card.js
-var VERSION = "0.0.0-dev.da91fbb";
+var VERSION = "0.0.0-dev.83d5d22";
 var UnifiDeviceCard = class extends HTMLElement {
   static getConfigElement() {
     return document.createElement("unifi-device-card-editor");
@@ -1345,9 +1345,10 @@ var UnifiDeviceCard = class extends HTMLElement {
       .theme-dark .port-led                { background: #1e2433; }
 
       /* LED states */
-      .port.up          .port-led-link  { background: var(--udc-green); }
+      .port.up          .port-led-link  { background: var(--udc-red); }
       .port.speed-10000 .port-led-link  { background: #1560bd; }
       .port.speed-2500  .port-led-link  { background: #1e90ff; }
+      .port.speed-1000  .port-led-link  { background: var(--udc-green); }
       .port.speed-100   .port-led-link  { background: var(--udc-orange); }
       .port.speed-low   .port-led-link  { background: #7a5c10; }
       .port.poe-on      .port-led-poe   { background: var(--udc-orange); }
@@ -1439,6 +1440,7 @@ var UnifiDeviceCard = class extends HTMLElement {
       if (spd.includes("100") && !spd.includes("1000")) speedClass = "speed-100";
       else if (spd.includes("10000")) speedClass = "speed-10000";
       else if (spd.includes("2500")) speedClass = "speed-2500";
+      else if (spd.includes("1000")) speedClass = "speed-1000";
       else if (spd !== "\u2014" && !spd.includes("1000") && !spd.includes("Gbit")) speedClass = "speed-low";
     }
     const tooltip = [
